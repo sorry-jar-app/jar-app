@@ -36,6 +36,47 @@
   70%      { transform: translateY(-2px); }
 }
 
+/* Shake the phone and the money jumps. Each coin carries its own --jx/--jy/--jr
+   so the jar tumbles rather than sliding as one block; the values are derived
+   from the coin's slot index, not random, so the server and client agree. */
+@keyframes coinJostle {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  25%  { transform: translate(var(--jx, 0px), var(--jy, 0px)) rotate(var(--jr, 0deg)); }
+  55%  { transform: translate(calc(var(--jx, 0px) * -0.55), calc(var(--jy, 0px) * -0.35))
+                   rotate(calc(var(--jr, 0deg) * -0.6)); }
+  80%  { transform: translate(calc(var(--jx, 0px) * 0.25), calc(var(--jy, 0px) * 0.2))
+                   rotate(calc(var(--jr, 0deg) * 0.3)); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+@keyframes jarShake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  15%      { transform: translateX(-3px) rotate(-1.1deg); }
+  35%      { transform: translateX(3px) rotate(1.1deg); }
+  55%      { transform: translateX(-2px) rotate(-0.7deg); }
+  78%      { transform: translateX(1.5px) rotate(0.4deg); }
+}
+
+/* The jar is a button so the tumble is reachable by keyboard too, but it must
+   look like nothing — the artwork is the affordance. */
+.sj-jar-tap {
+  display: block;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 28px;
+}
+
+.sj-jar-shake {
+  animation: jarShake 0.62s cubic-bezier(.36, .07, .19, .97) both;
+  transform-origin: 100px 240px;
+}
+
+.sj-coin-jostle {
+  animation: coinJostle 0.72s cubic-bezier(.34, 1.16, .64, 1) both;
+}
+
 @keyframes riseIn {
   from { transform: translateY(14px); opacity: 0; }
   to   { transform: translateY(0); opacity: 1; }
@@ -62,15 +103,37 @@ body {
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
+  overflow: hidden;
 }
 
+/* Kill the 300ms tap delay and the long-press callout on controls — two of
+   the things that most give a web app away. Text stays selectable. */
+button,
+a,
+.sj-tab,
+.sj-pill,
+.sj-row {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
+/*
+ * The app shell is a fixed-height box, and that is load-bearing.
+ *
+ * With min-height the container grew to fit its tallest child, so a long
+ * History pushed the document to 1772px in an 844px viewport and the tab bar —
+ * absolutely positioned at its bottom — scrolled off with it. A definite
+ * height constrains the flex chain, so the header and tab bar stay put and
+ * only .sj-body scrolls. That is the whole difference between a web page and
+ * something that feels like an app.
+ */
 .sj-app {
   position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
   max-width: 430px;
-  min-height: 100dvh;
+  height: 100dvh;
   margin-inline: auto;
   overflow: hidden;
   background: var(--color-bg);
@@ -128,6 +191,7 @@ body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;

@@ -1,11 +1,13 @@
 'use client';
 
+import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Jar } from '@/components/Jar';
 import { BellIcon, EyeIcon, GearIcon, PlusIcon } from '@/components/Icons';
 import { JAR_STARTED } from '@/lib/constants';
 import { veil } from '@/lib/money';
 import { sumFines, useStore } from '@/lib/store';
+import { useShake } from '@/lib/useShake';
 
 /**
  * Home — the jar, the ledger, and the one button that matters.
@@ -13,6 +15,11 @@ import { sumFines, useStore } from '@/lib/store';
  * Everything with a figure on it goes through `veil`, and the split bar is
  * forced to an even 50/50 while sealed: the ratio alone would give the total
  * away. The tab bar comes from AppShell.
+ *
+ * Shake the phone and the coins tumble. It is a toy, not a feature: no fine is
+ * logged, no total changes. Tapping the jar does the same thing, which gives
+ * it a discoverable, permission-free path on every platform and doubles as the
+ * user gesture iOS insists on before it will hand over motion events.
  */
 export default function HomePage() {
   const router = useRouter();
@@ -22,6 +29,16 @@ export default function HomePage() {
   const meTotal = sumFines(state.fines, 'A');
   const partnerTotal = sumFines(state.fines, 'S');
   const meShare = total ? Math.round((meTotal / total) * 100) : 50;
+
+  const [jostleKey, setJostleKey] = useState(0);
+  const jostle = useCallback(() => setJostleKey((n) => n + 1), []);
+  const { requestAccess } = useShake(jostle);
+  const tapJar = useCallback(() => {
+    // A click is a user gesture, which is the only moment iOS will let us ask
+    // for motion access. Harmless no-op everywhere else.
+    requestAccess();
+    jostle();
+  }, [requestAccess, jostle]);
 
   return (
     <div className="sj-screen sj-screen--tabbed">
@@ -59,7 +76,14 @@ export default function HomePage() {
           minHeight: 0,
         }}
       >
-        <Jar width={206} height={258} coins={state.coins} />
+        <button
+          type="button"
+          className="sj-jar-tap"
+          aria-label="Shake the jar"
+          onClick={tapJar}
+        >
+          <Jar width={206} height={258} coins={state.coins} jostleKey={jostleKey} />
+        </button>
 
         <div
           className="sj-money"

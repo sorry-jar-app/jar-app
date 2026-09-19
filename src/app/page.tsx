@@ -3,8 +3,8 @@
 /**
  * Welcome — first run. One breath of explanation, then create-or-join.
  *
- * Both buttons land on /pair: joining with a code is the same pairing screen,
- * entered from the other side.
+ * Both buttons land on /setup, which collects the two names before pairing:
+ * joining with a code is the same flow, entered from the other side.
  *
  * This is also the gate: anyone who has already been through pairing — either
  * by finishing it or by skipping it — goes straight to the jar instead.
@@ -18,7 +18,9 @@ import { useStore } from '@/lib/store';
 export default function WelcomePage() {
   const router = useRouter();
   const { state, hydrated } = useStore();
-  const startJar = () => router.push('/pair');
+  // Both buttons go through the names step: whether you are starting the jar
+  // or joining one, the app needs to know what to call you.
+  const startJar = () => router.push('/setup');
 
   useEffect(() => {
     // replace, not push, so Back does not come straight back here.
