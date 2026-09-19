@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-8646d193-7cc4-44e4-9abc-08c424cfead3/styles.css">
+<script src="_ds/organic-8646d193-7cc4-44e4-9abc-08c424cfead3/_ds_bundle.js"></script>
+<style>
+:root{
+  --color-bg:#f7f1e8;--color-surface:#ece3d7;
+  --color-accent:#8c4767;
+  --color-accent-100:#fbeef4;--color-accent-200:#f5dce8;--color-accent-300:#e8bed2;--color-accent-400:#d193ae;
+  --color-accent-500:#b06e8d;--color-accent-600:#74405c;--color-accent-700:#5d3349;--color-accent-800:#412433;--color-accent-900:#2a1721;
+  --color-accent-2:#5f7355;
+  --color-accent-2-100:#eef5e6;--color-accent-2-200:#deead1;--color-accent-2-300:#c4d6b3;--color-accent-2-400:#a2b992;
+  --color-accent-2-500:#829a72;--color-accent-2-600:#516343;--color-accent-2-700:#3f4f34;--color-accent-2-800:#2e3a26;--color-accent-2-900:#1d2518;
+}
+body{margin:0;background:var(--color-accent-100);display:grid;place-items:center;min-height:100vh}
+@keyframes coinDrop{from{transform:translateY(-120px) rotate(-25deg);opacity:0}60%{opacity:1}to{transform:translateY(0) rotate(0);opacity:1}}
+@keyframes jarNudge{0%,100%{transform:translateY(0)}35%{transform:translateY(4px)}70%{transform:translateY(-2px)}}
+@keyframes riseIn{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
+.sj-screen{position:absolute;inset:0;display:flex;flex-direction:column;animation:riseIn .28s ease both}
+.sj-row:hover{background:color-mix(in srgb, var(--color-text) 5%, transparent)}
+</style>
+</helmet>
+
+<div style="width:390px;height:844px;position:relative;overflow:hidden;border-radius:46px;background:var(--color-bg);box-shadow:var(--shadow-lg);font-family:var(--font-body);color:var(--color-text);font-size:15px">
+
+  <div style="position:absolute;top:0;left:0;right:0;height:46px;z-index:6;display:flex;align-items:center;justify-content:space-between;padding:14px 28px 0;font-size:13px;font-weight:700;pointer-events:none">
+    <span>9:41</span>
+    <span style="display:flex;align-items:center;gap:5px">
+      <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"></rect><rect x="4.3" y="5" width="3" height="6" rx="1"></rect><rect x="8.6" y="2.5" width="3" height="8.5" rx="1"></rect><rect x="12.9" y="0" width="3" height="11" rx="1"></rect></svg>
+      <svg width="23" height="11" viewBox="0 0 23 11" fill="none"><rect x="0.6" y="0.6" width="19" height="9.8" rx="3" stroke="currentColor" stroke-opacity="0.5"></rect><rect x="2.2" y="2.2" width="13" height="6.6" rx="1.8" fill="currentColor"></rect><path d="M21.4 4v3a2 2 0 0 0 0-3z" fill="currentColor" fill-opacity="0.5"></path></svg>
+    </span>
+  </div>
+
+  <sc-if value="{{ isWelcome }}" hint-placeholder-val="{{ true }}">
+    <div class="sj-screen" style="padding:46px 28px 34px;align-items:center;text-align:center;justify-content:center;gap:2px">
+      <svg viewBox="0 0 200 250" style="width:176px;height:220px" aria-hidden="true">
+        <defs><clipPath id="sj-w"><path d="M30 64a42 42 0 0 1 42-42h56a42 42 0 0 1 42 42v142a42 42 0 0 1-42 42H72a42 42 0 0 1-42-42z"></path></clipPath></defs>
+        <rect x="66" y="2" width="68" height="19" rx="9.5" fill="var(--color-accent-700)"></rect>
+        <rect x="78" y="16" width="44" height="12" fill="var(--color-accent-700)" opacity="0.22"></rect>
+        <g clip-path="url(#sj-w)"><rect x="28" y="20" width="144" height="232" fill="var(--color-accent-100)" opacity="0.6"></rect>
+          <circle cx="60" cy="228" r="16" fill="var(--color-accent-400)"></circle><circle cx="94" cy="232" r="15" fill="var(--color-accent-2-400)"></circle><circle cx="128" cy="227" r="16" fill="var(--color-accent-300)"></circle>
+        </g>
+        <path d="M30 64a42 42 0 0 1 42-42h56a42 42 0 0 1 42 42v142a42 42 0 0 1-42 42H72a42 42 0 0 1-42-42z" fill="none" stroke="color-mix(in srgb, var(--color-text) 26%, transparent)" stroke-width="3"></path>
+        <path d="M48 92a26 26 0 0 1 22-24" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity="0.55"></path>
+      </svg>
+      <h1 style="font-size:40px;margin:14px 0 8px">Sorry Jar</h1>
+      <p class="text-muted" style="font-size:15px;max-width:270px;text-wrap:pretty">A shared jar for the small stuff. Set your rules, log the fines, spend it on something you both like.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;width:100%;margin-top:22px">
+        <button class="btn btn-primary btn-block" style="height:54px;font-size:17px;margin-top:0" onClick="{{ startJar }}">Start a jar</button>
+        <button class="btn btn-secondary btn-block" style="height:50px;font-size:15px;margin-top:0" onClick="{{ startJar }}">I have an invite code</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isPair }}" hint-placeholder-val="{{ false }}">
+    <div class="sj-screen" style="padding:62px 28px 34px">
+      <h2 style="font-size:30px;margin-bottom:8px">Invite your<br>other half</h2>
+      <p class="text-muted" style="font-size:14px;max-width:280px">One jar, two ledgers. They'll see everything you log, and you'll see everything they do.</p>
+      <div style="margin-top:26px;padding:26px 22px;background:var(--color-surface);border-radius:32px;text-align:center">
+        <div style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-accent-700)">Your code</div>
+        <div style="font-family:var(--font-heading);font-size:38px;letter-spacing:0.06em;margin:8px 0 2px">JAR-4K2P</div>
+        <div class="text-muted" style="font-size:12px">sorryjar.app/j/4k2p</div>
+        <div style="display:flex;gap:9px;margin-top:20px">
+          <button class="btn btn-secondary" style="flex:1;height:44px">Copy link</button>
+          <button class="btn btn-primary" style="flex:1;height:44px">Text it</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:22px;padding:0 4px">
+        <span style="width:9px;height:9px;border-radius:50%;background:var(--color-accent-2-500);flex:none"></span>
+        <span class="text-muted" style="font-size:13px">Waiting for Sam to join</span>
+      </div>
+      <div style="flex:1"></div>
+      <button class="btn btn-ghost btn-block" style="height:46px" onClick="{{ goHome }}">Skip for now — start logging</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ false }}">
+    <div class="sj-screen" style="padding:46px 0 96px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 22px 0">
+        <span style="font-family:var(--font-heading);font-size:19px">Sorry Jar</span>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-icon btn-secondary" aria-label="Notifications" onClick="{{ goNotifications }}">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
+          </button>
+          <button class="btn btn-icon btn-secondary" aria-label="Settings" onClick="{{ goSettings }}">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0 24px;min-height:0">
+        <svg viewBox="0 0 200 250" style="width:206px;height:258px;display:block" aria-hidden="true">
+          <defs><clipPath id="sj-h"><path d="M30 64a42 42 0 0 1 42-42h56a42 42 0 0 1 42 42v142a42 42 0 0 1-42 42H72a42 42 0 0 1-42-42z"></path></clipPath></defs>
+          <rect x="66" y="2" width="68" height="19" rx="9.5" fill="var(--color-accent-700)"></rect>
+          <rect x="78" y="16" width="44" height="12" fill="var(--color-accent-700)" opacity="0.22"></rect>
+          <g clip-path="url(#sj-h)">
+            <rect x="28" y="20" width="144" height="232" fill="var(--color-accent-100)" opacity="0.55"></rect>
+            {{ coinLayer }}
+          </g>
+          <path d="M30 64a42 42 0 0 1 42-42h56a42 42 0 0 1 42 42v142a42 42 0 0 1-42 42H72a42 42 0 0 1-42-42z" fill="none" stroke="color-mix(in srgb, var(--color-text) 26%, transparent)" stroke-width="3"></path>
+          <path d="M48 92a26 26 0 0 1 22-24" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity="0.5"></path>
+        </svg>
+        <div style="font-family:var(--font-heading);font-size:52px;line-height:1;letter-spacing:-0.02em;margin-top:6px">{{ displayTotal }}</div>
+        <div class="text-muted" style="font-size:13px">{{ homeSub }}</div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <sc-if value="{{ mystery }}" hint-placeholder-val="{{ false }}">
+            <button class="btn btn-ghost" style="font-size:13px;gap:7px" onClick="{{ peek }}">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              {{ peekLabel }}
+            </button>
+          </sc-if>
+          <button class="btn btn-ghost" style="font-size:13px" onClick="{{ goCashout }}">Spend the jar →</button>
+        </div>
+      </div>
+
+      <div style="padding:0 24px 6px;display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;justify-content:space-between;font-size:13px">
+          <span><strong style="font-weight:700">{{ meName }}</strong> <span class="text-muted">{{ meDisplay }}</span></span>
+          <span><span class="text-muted">{{ partnerDisplay }}</span> <strong style="font-weight:700">{{ partnerName }}</strong></span>
+        </div>
+        <div style="display:flex;height:12px;border-radius:999px;overflow:hidden;background:var(--color-neutral-200)">
+          <div style="{{ meLedgerStyle }}"></div>
+          <div style="{{ partnerLedgerStyle }}"></div>
+        </div>
+      </div>
+
+      <div style="padding:14px 24px 0">
+        <button class="btn btn-primary btn-block" style="height:56px;font-size:17px;gap:9px;margin-top:0" onClick="{{ goLog }}">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+          Log a fine
+        </button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isLog }}" hint-placeholder-val="{{ false }}">
+    <div class="sj-screen" style="padding:46px 0 0">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 18px 12px">
+        <button class="btn btn-icon btn-secondary" aria-label="Back" onClick="{{ goHome }}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M15 5l-7 7 7 7"></path></svg>
+        </button>
+        <span style="font-family:var(--font-heading);font-size:19px">Log a fine</span>
+      </div>
+
+      <div style="flex:1;overflow:auto;padding:4px 24px 18px;display:flex;flex-direction:column;gap:20px;min-height:0">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <h6 style="margin:0;color:color-mix(in srgb, var(--color-text) 60%, transparent)">Who</h6>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <button style="{{ whoMeStyle }}" onClick="{{ pickMe }}">
+              <span style="{{ meAvatarStyle }}">{{ meInitial }}</span>
+              {{ meName }}
+            </button>
+            <button style="{{ whoPartnerStyle }}" onClick="{{ pickPartner }}">
+              <span style="{{ partnerAvatarStyle }}">{{ partnerInitial }}</span>
+              {{ partnerName }}
+            </button>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <h6 style="margin:0;color:color-mix(in srgb, var(--color-text) 60%, transparent)">What happened</h6>
+          <sc-for list="{{ ruleChoices }}" as="r" hint-placeholder-count="3">
+            <button class="sj-row" style="{{ r.style }}" onClick="{{ r.pick }}">
+              <span>{{ r.name }}</span>
+              <span style="font-family:var(--font-heading);font-size:15px">{{ r.priceStr }}</span>
+            </button>
+          </sc-for>
+          <button class="sj-row" style="{{ customChoiceStyle }}" onClick="{{ goOneOff }}">
+            <span>Something else</span>
+            <span style="display:flex;align-items:center;gap:7px;font-size:12px;opacity:.7">One-off
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M9 5l7 7-7 7"></path></svg>
+            </span>
+          </button>
+        </div>
+
+        <sc-if value="{{ showSeverity }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <h6 style="margin:0;color:color-mix(in srgb, var(--color-text) 60%, transparent)">How bad</h6>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+            <sc-for list="{{ sevChoices }}" as="s" hint-placeholder-count="3">
+              <button style="{{ s.style }}" onClick="{{ s.pick }}">
+                <span>{{ s.name }}</span>
+                <span style="font-size:11px;opacity:.7">{{ s.mult }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <p class="text-muted" style="font-size:12px;margin:0">Fines are final once logged. Take it up with each other, not the app.</p>
+      </div>
+
+      <div style="padding:12px 24px 26px;border-top:1px solid var(--color-divider);background:var(--color-bg)">
+        <button class="btn btn-primary btn-block" style="height:54px;font-size:17px;margin-top:0" disabled="{{ logDisabled }}" onClick="{{ submitFine }}">{{ logCta }}</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isOneOff }}" hint-placeholder-val="{{ false }}">
+    <div class="sj-screen" style="padding:46px 0 0">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 18px 12px">
+        <button class="btn btn-icon btn-secondary" aria-label="Back" onClick="{{ goLog }}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M15 5l-7 7 7 7"></path></svg>
+        </button>
+        <span style="font-family:var(--font-heading);font-size:19px">One-off fine</span>
+      </div>
+
+      <div style="flex:1;overflow:auto;padding:4px 24px 18px;display:flex;flex-direction:column;gap:20px;min-height:0">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <h6 style="margin:0;color:color-mix(in srgb, var(--color-text) 60%, transparent)">Who</h6>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <button style="{{ whoMeStyle }}" onClick="{{ pickMe }}">
+              <span style="{{ meAvatarStyle }}">{{ meInitial }}</span>
+              {{ meName }}
+            </button>
+            <button style="{{ whoPartnerStyle }}" onClick="{{ pickPartner }}">
+              <span style="{{ partnerAvatarStyle }}">{{ partnerInitial }}</span>
+              {{ partnerName }}
+            </button>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <h6 style="margin:0;color:color-mix(in srgb, var(--color-text) 60%, transparent)">What happened</h6>
+          <input class="input" style="height:48px;font-size:15px" placeholder="Ate my leftovers" value="{{ customName }}" onChange="{{ setCustomName }}">
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <h6 style="margin:0;color:color-mix(in srgb, var(--color-text) 60%, transparent)">How much</h6>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--color-surface);border-radius:999px">
+            <span style="font-family:var(--font-heading);font-size:30px;opacity:.5">$</span>
+            <input class="input" style="flex:1;background:transparent;border:none;font-family:var(--font-heading);font-size:30px;padding:0;height:46px" placeholder="0.00" value="{{ customAmt }}" onChange="{{ setCustomAmt }}">
+          </div>
+          <div style="display:flex;gap:8px">
+            <sc-for list="{{ quickAmounts }}" as="q" hint-placeholder-count="4">
+              <button style="{{ q.style }}" onClick="{{ q.pick }}">{{ q.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <button style="{{ saveRuleRowStyle }}" onClick="{{ toggleSaveRule }}">
+          <span style="flex:1">
+            <span style="font-size:15px;display:block">Save as a rule</span>
+            <span class="text-muted" style="font-size:12px">Keep it in the list for next time</span>
+          </span>
+          <span style="{{ saveRuleTrack }}"><span style="{{ saveRuleKnob }}"></span></span>
+        </button>
+      </div>
+
+      <div style="padding:12px 24px 26px;border-top:1px solid var(--color-divider);background:var(--color-bg)">
+        <button class="btn btn-primary btn-block" style="height:54px;font-size:17px;margin-top:0" disabled="{{ oneOffDisabled }}" onClick="{{ submitFine }}">{{ oneOffCta }}</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isLanded }}" hint-placeholder-val="{{ false }}">
+    <div class="sj-screen" style="padding:46px 28px 34px;align-items:center;justify-content:center;text-align:center;gap:2px;background:var(--color-accent-100)">
+      <svg viewBox="0 0 200 250" style="width:190px;height:238px;animation:jarNudge .6s ease .35s both" aria-hidden="true">
+        <defs><clipPath id="sj-l"><path d="M30 64a42 42 0 0 1 42-42h56a42 42 0 0 1 42 42v142a42 42 0 0 1-42 42H72a42 42 0 0 1-42-42z"></path></clipPath></defs>
+        <rect x="66" y="2" width="68" height="19" rx="9.5" fill="var(--color-accent-700)"></rect>
+        <rect x="78" y="16" width="44" height="12" fill="var(--color-accent-700)" opacity="0.22"></rect>
+        <g clip-path="url(#sj-l)"><rect x="28" y="20" width="144" height="232" fill="var(--color-bg)" opacity="0.6"></rect>{{ coinLayer }}</g>
+        <path d="M30 64a42 42 0 0 1 42-42h56a42 42 0 0 1 42 42v142a42 42 0 0 1-42 42H72a42 42 0 0 1-42-42z" fill="none" stroke="color-mix(in srgb, var(--color-text) 26%, transparent)" stroke-width="3"></path>
+      </svg>
+      <div style="font-family:var(--font-heading);font-size:44px;line-height:1;margin-top:10px">{{ lastAmountStr }}</div>
+      <div style="font-size:14px;margin-top:6px">{{ lastLine }}</div>
+      <div class="text-muted" style="font-size:13px;margin-top:2px">{{ landedSub }}</div>
+      <div style="display:flex;gap:10px;width:100%;margin-top:26px">
+        <button class="btn btn-secondary" style="flex:1;height:50px" onClick="{{ undoLast }}">Undo</button>
+        <button class="btn btn-primary" style="flex:1;height:50px" onClick="{{ goHome }}">Done</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isHistory }}" hint-placeholder-val="{{ false }}">
+    <div class="sj-screen" style="padding:46px 0 96px">
+      <div style="padding:12px 24px 10px">
+        <h3 style="margin:0 0 12px">History</h3>
+        <div style="display:flex;gap:7px">
+          <sc-for list="{{ filters }}" as="f" hint-placeholder-count="3">
+            <button style="{{ f.style }}" onClick="{{ f.pick }}">{{ f.name }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <div style="flex:1;overflow:auto;padding:4px 24px 20px;display:flex;flex-direction:column;gap:16px;min-height:0">
+        <sc-for list="{{ historyGroups }}" as="g" hint-placeholder-count="3">
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 6px">
+              <h6 style="margin:0;color:color-mix(in srgb, var(--color-text) 55%, transparent)">{{ g.when }}</h6>
+              <span class="text-muted" style="font-size:12px">{{ g.total }}</span>
+            </div>
+            <sc-for list="{{ g.rows }}" as="h" hint-placeholder-count="2">
+              <div class="sj-row" style="display:flex;align-items:center;gap:11px;padding:12px 16px;background:var(--color-surface);border-radius:999px">
+                <span style="{{ h.avatarStyle }}">{{ h.initial }}</span>
+                <span style="flex:1;min-width:0">
+                  <span style="font-size:14px">{{ h.rule }}</span>
+                  <span class="text-muted" style="font-size:11px;display:block">{{ h.meta }}</span>
+                </span>
+                <span style="font-family:var(--font-heading);font-size:16px">{{ h.amt }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+        <sc-if value="{{ historyEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:60px 20px;text-align:center">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-300)" stroke-width="2.75" stroke-linecap="round"><path d="M8 2h8M6 8a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4z"></path></svg>
+            <div style="font-family:var(--font-heading);font-size:20px;margin-top:6px">Nothing yet</div>
+            <p class="text-muted" style="font-size:13px;margin:0;max-width:220px">Either you've both been good, or someone isn't logging.</p>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isStats }}" hint-placeholder-val="{{ false }}">
+    <div class="sj-screen" style="padding:46px 0 96px">
+      <div style="padding:12px 24px 6px"><h3 style="margin:0">Stats</h3></div>
+      <div style="flex:1;overflow:auto;padding:8px 24px 20px;display:flex;flex-direction:column;gap:12px;min-height:0">
+        <div style="padding:18px 20px;background:var(--color-surface);border-radius:28px">
+          <h6 style="margin:0 0 12px;color:color-mix(in srgb, var(--color-text) 60%, transparent)">Who owes more this month</h6>
+          <div style="display:flex;align-items:flex-end;gap:18px;height:104px">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;justify-content:flex-end;height:100%">
+              <span style="font-family:var(--font-heading);font-size:18px">{{ meDisplay }}</span>
+              <div style="{{ meStatBar }}"></div>
+              <span style="font-size:12px">{{ meName }}</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;justify-content:flex-end;height:100%">
+              <span style="font-family:var(--font-heading);font-size:18px">{{ partnerDisplay }}</span>
+              <div style="{{ partnerStatBar }}"></div>
+              <span style="font-size:12px">{{ partnerName }}</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="padding:16px 18px;background:var(--color-accent-2-100);border-radius:28px">
+            <h6 style="margin:0 0 6px;color:var(--color-accent-2-800)">Longest streak</h6>
+            <div style="font-family:var(--font-heading);font-size:26px;line-height:1.1">9 days</div>
+            <div class="text-muted" style="font-size:12px;margin-top:2px">Sam, in June</div>
+          </div>
+          <div style="padding:16px 18px;background:var(--color-accent-2-100);border-radius:28px">
+            <h6 style="margin:0 0 6px;color:var(--color-accent-2-800)">Total ever</h6>
+            <div style="font-family:var(--font-heading);font-size:26px;line-height:1.1">{{ totalEverStr }}</div>
+            <div class="text-muted" style="font-size:12px;margin-top:2px">Across 3 jars</div>
+          </div>
+        </div>
+        <div style="padding:18px 20px;background:var(--color-surface);border-radius:28px">
+          <h6 style="margin:0 0 12px;color:color-mix(in srgb, var(--color-text) 60%, transparent)">Most expensive rule</h6>
+          <sc-for list="{{ ruleTotals }}" as="rt" hint-placeholder-count="3">
+            <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:11px">
+              <div style="display:flex;justify-content:space-between;font-size:13px"><span>{{ rt.name }}</span><span>{{ rt.amt }}</span></div>
+              <div style="height:8px;border-radius:999px;background:var(--color-neutral-200);overflow:hidden"><div style="{{ rt.barStyle }}"></div></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="padding:18px 20px;background:var(--color-surface);border-radius:28px">
+          <h6 style="margin:0 0 12px;color:color-mix(in srgb, var(--color-text) 60%, transparent)">Worst day of the week</h6>
+          <div style="display:flex;align-items:flex-end;gap:7px;height:76px">
+            <sc-for list="{{ weekBars }}" as="d" hint-placeholder-count="7">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end">
+                <div style="{{ d.barStyle }}"></div>
+                <span class="text-muted" style="font-size:10px">{{ d.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div class="text-muted" style="font-size:12px;margin-top:10px">Tuesdays cost you the most. Worth a look.</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isRules }}" hint-placeholder-val="{{ false }}">
+    <div class="sj-screen" style="padding:46px 0 96px">
+      <div style="padding:12px 24px 6px">
+        <h3 style="margin:0">Rules</h3>
+        <p class="text-muted" style="font-size:13px;margin:4px 0 0">Both of you have to agree to a change.</p>
+      </div>
+      <div style="flex:1;overflow:auto;padding:12px 24px 20px;display:flex;flex-direction:column;gap:9px;min-height:0">
+        <sc-for list="{{ ruleRows }}" as="r" hint-placeholder-count="3">
+          <button class="sj-row" style="{{ r.rowStyle }}" onClick="{{ r.open }}">
+            <span style="flex:1;font-size:15px">{{ r.name }}</span>
+            <span style="font-family:var(--font-heading);font-size:16px">{{ r.priceStr }}</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" opacity="0.45"><path d="M9 5l7 7-7 7"></path></svg>
+          </button>
+        </sc-for>
+        <sc-if value="{{ notAddingRule }}" hint-placeholder-val="{{ true }}">
+          <button class="btn btn-secondary btn-block" style="height:48px;gap:8px;margin-top:4px" onClick="{{ startAddRule }}">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+            Add a rule
+          </button>
+        </sc-if>
+        <sc-if value="{{ addingRule }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:10px;padding:16px 18px;background:var(--color-accent-100);border-radius:26px">
+            <div style="display:flex;gap:9px">
+              <input class="input" style="flex:1" placeholder="Rule name" value="{{ newRuleName }}" onChange="{{ setNewRuleName }}">
+              <input class="input" style="width:92px" placeholder="$0.00" value="{{ newRulePrice }}" onChange="{{ setNewRulePrice }}">
+            </div>
+            <div style="display:flex;gap:9px">
+              <button class="btn btn-secondary" style="flex:1;height:42px" onClick="{{ cancelRule }}">Cancel</button>
+              <button class="btn btn-primary" style="flex:1;height:42px;margin-top:0" onClick="{{ saveRule }}">Add rule</button>
+            </div>
+          </div>
+        </sc-if>
+        <div style="margin-top:12px;padding:18px 20px;background:var(--color-accent-2-100);border-radius:28px">
+          <h6 style="margin:0 0 8px;color:var(--color-accent-2-800)">Severity</h6>
+          <p style="font-size:13px;margin:0 0 10px;opacity:.85">Every rule has a base price. When you log it, you pick how bad it was and the price multiplies.</p>
+          <div style="display:flex;gap:7px;flex-wrap:wrap">
+            <span class="tag tag-accent-2">Mild ×1</span>
+            <span class="tag tag-accent-2">Bad ×2</span>
+            <span class="tag tag-accent-2">Unforgivable ×3</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isRuleDetail }}" hint-placeholder-val="{{ false }}">
+    <div class="sj-screen" style="padding:46px 0 0">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 18px 12px">
+        <button class="btn btn-icon btn-secondary" aria-label="Back" onClick="{{ goRules }}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M15 5l-7 7 7 7"></path></svg>
+        </button>
+        <span style="font-family:var(--font-heading);font-size:19px">Edit rule</span>
+      </div>
+      <div style="flex:1;overflow:auto;padding:4px 24px 18px;display:flex;flex-direction:column;gap:18px;min-height:0">
+        <div class="field"><label>Name</label><input class="input" style="height:44px" value="{{ editName }}" onChange="{{ setEditName }}"></div>
+        <div class="field"><label>Base price</label>
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 18px;background:var(--color-surface);border-radius:999px">
+            <span style="font-family:var(--font-heading);font-size:26px;opacity:.5">$</span>
+            <input class="input" style="flex:1;background:transparent;border:none;font-family:var(--font-heading);font-size:26px;padding:0;height:40px" value="{{ editPrice }}" onChange="{{ setEditPrice }}">
+          </div>
+        </div>
+        <div style="padding:18px 20px;background:var(--color-accent-2-100);border-radius:28px">
+          <h6 style="margin:0 0 8px;color:var(--color-accent-2-800)">So far</h6>
+          <div style="font-family:var(--font-heading);font-size:26px;line-height:1.1">{{ editRuleCost }}</div>
+          <div class="text-muted" style="font-size:12px;margin-top:2px">{{ editRuleCount }}</div>
+        </div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <span class="tag tag-accent">{{ editMild }}</span>
+          <span class="tag tag-accent">{{ editBad }}</span>
+          <span class="tag tag-accent">{{ editUnforgivable }}</span>
+        </div>
+      </div>
+      <div style="padding:12px 24px 26px;border-top:1px solid var(--color-divider);background:var(--color-bg)">
+        <button class="btn btn-primary btn-block" style="height:52px;font-size:16px;margin-top:0" onClick="{{ saveEdit }}">Save changes</button>
+        <button class="btn btn-ghost btn-block" style="height:44px;color:var(--color-accent-700)" onClick="{{ deleteRule }}">Delete this rule</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isCashedOut }}" hint-placeholder-val="{{ false }}">
+    <div class="sj-screen" style="padding:46px 28px 34px;align-items:center;justify-content:center;text-align:center;gap:2px;background:var(--color-accent-100)">
+      <svg viewBox="0 0 200 250" style="width:168px;height:210px" aria-hidden="true">
+        <defs><clipPath id="sj-co"><path d="M30 64a42 42 0 0 1 42-42h56a42 42 0 0 1 42 42v142a42 42 0 0 1-42 42H72a42 42 0 0 1-42-42z"></path></clipPath></defs>
+        <rect x="66" y="2" width="68" height="19" rx="9.5" fill="var(--color-accent-700)"></rect>
+        <g clip-path="url(#sj-co)"><rect x="28" y="20" width="144" height="232" fill="var(--color-bg)" opacity="0.6"></rect>{{ coinLayer }}</g>
+        <path d="M30 64a42 42 0 0 1 42-42h56a42 42 0 0 1 42 42v142a42 42 0 0 1-42 42H72a42 42 0 0 1-42-42z" fill="none" stroke="color-mix(in srgb, var(--color-text) 26%, transparent)" stroke-width="3"></path>
+      </svg>
+      <div class="text-muted" style="font-size:13px;margin-top:14px">Emptied the jar</div>
+      <div style="font-family:var(--font-heading);font-size:48px;line-height:1;margin-top:2px">{{ cashedAmtStr }}</div>
+      <div style="font-size:15px;margin-top:8px">went to {{ cashedDest }}</div>
+      <div class="text-muted" style="font-size:13px;margin-top:2px">{{ cashedNote }}</div>
+      <button class="btn btn-primary btn-block" style="height:54px;font-size:17px;margin-top:30px" onClick="{{ goHome }}">Start a new jar</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isCashout }}" hint-placeholder-val="{{ false }}">
+    <div class="sj-screen" style="padding:46px 0 0">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 18px 4px">
+        <button class="btn btn-icon btn-secondary" aria-label="Back" onClick="{{ goHome }}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M15 5l-7 7 7 7"></path></svg>
+        </button>
+        <span style="font-family:var(--font-heading);font-size:19px">Spend the jar</span>
+      </div>
+      <div style="flex:1;overflow:auto;padding:14px 24px 18px;display:flex;flex-direction:column;gap:16px;min-height:0">
+        <div style="text-align:center;padding:20px 0 4px">
+          <div style="font-family:var(--font-heading);font-size:56px;line-height:1">{{ displayTotal }}</div>
+          <div class="text-muted" style="font-size:13px">{{ fineCountStr }}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <h6 style="margin:0;color:color-mix(in srgb, var(--color-text) 60%, transparent)">Where's it going</h6>
+          <sc-for list="{{ destChoices }}" as="d" hint-placeholder-count="4">
+            <button style="{{ d.style }}" onClick="{{ d.pick }}">
+              <span style="{{ d.dotStyle }}"></span>
+              <span style="flex:1">
+                <span style="font-size:15px;display:block">{{ d.name }}</span>
+                <span class="text-muted" style="font-size:12px">{{ d.note }}</span>
+              </span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+      <div style="padding:12px 24px 26px;border-top:1px solid var(--color-divider)">
+        <button class="btn btn-primary btn-block" style="height:54px;font-size:17px;margin-top:0" onClick="{{ doCashout }}">{{ cashoutCta }}</button>
+        <p class="text-muted" style="font-size:12px;text-align:center;margin:10px 0 0">This empties the jar and starts a fresh one.</p>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isNotifications }}" hint-placeholder-val="{{ false }}">
+    <div class="sj-screen" style="padding:46px 0 0">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 18px 4px">
+        <button class="btn btn-icon btn-secondary" aria-label="Back" onClick="{{ goHome }}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M15 5l-7 7 7 7"></path></svg>
+        </button>
+        <span style="font-family:var(--font-heading);font-size:19px">Notifications</span>
+      </div>
+      <div style="flex:1;overflow:auto;padding:16px 24px 20px;display:flex;flex-direction:column;gap:10px;min-height:0">
+        <h6 style="margin:0 2px;color:color-mix(in srgb, var(--color-text) 60%, transparent)">Recent</h6>
+        <sc-for list="{{ notifFeed }}" as="a" hint-placeholder-count="3">
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 18px;background:var(--color-accent-100);border-radius:26px">
+            <span style="{{ a.dotStyle }}"></span>
+            <span style="flex:1">
+              <span style="font-size:14px;display:block">{{ a.title }}</span>
+              <span class="text-muted" style="font-size:12px">{{ a.meta }}</span>
+            </span>
+          </div>
+        </sc-for>
+        <sc-if value="{{ notifEmpty }}" hint-placeholder-val="{{ false }}">
+          <p class="text-muted" style="font-size:13px;margin:2px 2px 0">Quiet in here.</p>
+        </sc-if>
+        <h6 style="margin:16px 2px 0;color:color-mix(in srgb, var(--color-text) 60%, transparent)">Tell me when</h6>
+        <sc-for list="{{ notifRows }}" as="n" hint-placeholder-count="3">
+          <button style="display:flex;align-items:center;gap:14px;padding:16px 18px;background:var(--color-surface);border:none;border-radius:26px;cursor:pointer;font:inherit;text-align:left;width:100%" onClick="{{ n.toggle }}">
+            <span style="flex:1">
+              <span style="font-size:15px;display:block">{{ n.name }}</span>
+              <span class="text-muted" style="font-size:12px">{{ n.note }}</span>
+            </span>
+            <span style="{{ n.trackStyle }}">
+              <span style="{{ n.knobStyle }}"></span>
+            </span>
+          </button>
+        </sc-for>
+        <p class="text-muted" style="font-size:12px;margin:6px 2px 0">Nothing else will buzz you. No streak nags, no weekly recaps.</p>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+    <div class="sj-screen" style="padding:46px 0 0">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 18px 4px">
+        <button class="btn btn-icon btn-secondary" aria-label="Back" onClick="{{ goHome }}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M15 5l-7 7 7 7"></path></svg>
+        </button>
+        <span style="font-family:var(--font-heading);font-size:19px">Settings</span>
+      </div>
+      <div style="flex:1;overflow:auto;padding:16px 24px 20px;display:flex;flex-direction:column;gap:16px;min-height:0">
+        <div style="display:flex;flex-direction:column;gap:11px">
+          <h6 style="margin:0;color:color-mix(in srgb, var(--color-text) 60%, transparent)">Names</h6>
+          <div class="field"><label>You</label><input class="input" value="{{ meName }}" onChange="{{ setMeName }}"></div>
+          <div class="field"><label>Them</label><input class="input" value="{{ partnerName }}" onChange="{{ setPartnerName }}"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:15px 18px;background:var(--color-accent-2-100);border-radius:26px">
+          <span style="width:9px;height:9px;border-radius:50%;background:var(--color-accent-2-600);flex:none"></span>
+          <span style="flex:1;font-size:14px">Paired with {{ partnerName }}</span>
+          <span class="tag tag-accent-2">Since March</span>
+        </div>
+        <button style="{{ mysteryRowStyle }}" onClick="{{ toggleMystery }}">
+          <span style="flex:1">
+            <span style="font-size:15px;display:block">Mystery jar</span>
+            <span class="text-muted" style="font-size:12px">Hide the running total until you cash out</span>
+          </span>
+          <span style="{{ mysteryTrack }}"><span style="{{ mysteryKnob }}"></span></span>
+        </button>
+
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div class="sj-row" style="display:flex;align-items:center;padding:15px 18px;background:var(--color-surface);border-radius:26px">
+            <span style="flex:1;font-size:15px">Currency</span><span class="text-muted" style="font-size:14px">USD $</span>
+          </div>
+          <div class="sj-row" style="display:flex;align-items:center;padding:15px 18px;background:var(--color-surface);border-radius:26px">
+            <span style="flex:1;font-size:15px">Jar started</span><span class="text-muted" style="font-size:14px">4 March</span>
+          </div>
+          <div class="sj-row" style="display:flex;align-items:center;padding:15px 18px;background:var(--color-surface);border-radius:26px">
+            <span style="flex:1;font-size:15px">Export history</span><span class="text-muted" style="font-size:14px">CSV</span>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-block" style="height:46px;color:var(--color-accent-700)" onClick="{{ resetDemo }}">Reset this demo</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showTabs }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:11px 18px 26px;background:var(--color-bg);border-top:1px solid var(--color-divider)">
+      <button style="{{ tabHomeStyle }}" onClick="{{ goHome }}">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M8 2h8M6 8a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4z"></path></svg>
+        Jar
+      </button>
+      <button style="{{ tabHistoryStyle }}" onClick="{{ goHistory }}">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"></path></svg>
+        History
+      </button>
+      <button style="{{ tabStatsStyle }}" onClick="{{ goStats }}">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M5 20V10M12 20V4M19 20v-7"></path></svg>
+        Stats
+      </button>
+      <button style="{{ tabRulesStyle }}" onClick="{{ goRules }}">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+        Rules
+      </button>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844},&quot;palette&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Mulberry&quot;,&quot;Pine&quot;,&quot;Ink&quot;,&quot;Terracotta&quot;],&quot;default&quot;:&quot;Mulberry&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;coinAnimation&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Welcome&quot;,&quot;Home&quot;],&quot;default&quot;:&quot;Welcome&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Demo&quot;}}">
+const SEED = [
+  {id:1,who:'A',rule:'swear',sev:'unforgivable',amt:3,when:'2 hours ago',day:5},
+  {id:2,who:'S',rule:'phone',sev:'mild',amt:2,when:'Yesterday',day:4},
+  {id:3,who:'A',rule:'late',sev:'bad',amt:5,when:'Yesterday',day:4},
+  {id:4,who:'A',rule:'swear',sev:'bad',amt:2,when:'Yesterday',day:4},
+  {id:5,who:'A',rule:'phone',sev:'mild',amt:2,when:'Tuesday',day:2},
+  {id:6,who:'S',rule:'swear',sev:'mild',amt:1,when:'Tuesday',day:2},
+  {id:7,who:'A',rule:'late',sev:'mild',amt:2.5,when:'Tuesday',day:2},
+  {id:8,who:'A',rule:'swear',sev:'bad',amt:2,when:'Monday',day:1},
+  {id:9,who:'S',rule:'late',sev:'mild',amt:2.5,when:'Monday',day:1},
+  {id:10,who:'A',rule:'late',sev:'unforgivable',amt:7.5,when:'Sunday',day:0},
+  {id:11,who:'S',rule:'phone',sev:'bad',amt:4,when:'Sunday',day:0},
+  {id:12,who:'A',rule:'swear',sev:'mild',amt:1,when:'Saturday',day:6},
+  {id:13,who:'S',rule:'swear',sev:'bad',amt:2,when:'Saturday',day:6},
+  {id:14,who:'A',rule:'phone',sev:'bad',amt:4,when:'Friday',day:5},
+  {id:15,who:'S',rule:'late',sev:'bad',amt:5,when:'Thursday',day:4},
+  {id:16,who:'A',rule:'swear',sev:'bad',amt:2,when:'Thursday',day:4},
+  {id:17,who:'S',rule:'swear',sev:'mild',amt:1,when:'Wednesday',day:3}
+];
+const RULES = [{id:'swear',name:'Swearing',price:1},{id:'late',name:'Late again',price:2.5},{id:'phone',name:'Phone at dinner',price:2}];
+const SEVS = [{id:'mild',name:'Mild',mult:1},{id:'bad',name:'Bad',mult:2},{id:'unforgivable',name:'Unforgivable',mult:3}];
+const SLOTS = [
+  [58,228,16],[92,232,15],[126,227,16],[154,231,14],
+  [48,202,15],[80,206,16],[112,201,15],[144,205,16],
+  [60,176,16],[94,173,15],[128,178,16],[156,174,13],
+  [50,150,14],[84,147,15],[118,151,14],[148,146,12],
+  [62,124,14],[96,121,13],[130,125,14]
+];
+const COIN_FILLS = ['var(--color-accent-400)','var(--color-accent-2-400)','var(--color-accent-300)','var(--color-neutral-400)','var(--color-accent-500)','var(--color-accent-2-300)','var(--color-accent-2-500)'];
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DESTS = [
+  {id:'date',name:'Date night',note:'Somewhere neither of you has to cook'},
+  {id:'trip',name:'Trip to Lisbon',note:'$248 of $1,200 saved'},
+  {id:'charity',name:'Charity',note:'Goes out the same day'},
+  {id:'wheel',name:'Spin the wheel',note:'Let the app decide'}
+];
+
+const PALETTES = {
+  Mulberry:{'--color-accent':'#8c4767','--color-accent-100':'#fbeef4','--color-accent-200':'#f5dce8','--color-accent-300':'#e8bed2','--color-accent-400':'#d193ae','--color-accent-500':'#b06e8d','--color-accent-600':'#74405c','--color-accent-700':'#5d3349','--color-accent-800':'#412433','--color-accent-900':'#2a1721','--color-bg':'#f7f1e8','--color-surface':'#ece3d7'},
+  Pine:{'--color-accent':'#2f5d50','--color-accent-100':'#eaf4ef','--color-accent-200':'#d3e8de','--color-accent-300':'#b0d3c3','--color-accent-400':'#83b4a0','--color-accent-500':'#58927c','--color-accent-600':'#275045','--color-accent-700':'#1e3f37','--color-accent-800':'#16302a','--color-accent-900':'#0f211d','--color-bg':'#f6f1e6','--color-surface':'#e8e2d4'},
+  Ink:{'--color-accent':'#2f4a7a','--color-accent-100':'#ecf1fa','--color-accent-200':'#dae4f5','--color-accent-300':'#b9cbeb','--color-accent-400':'#90a9d8','--color-accent-500':'#6b87bf','--color-accent-600':'#283f68','--color-accent-700':'#1f3152','--color-accent-800':'#17253d','--color-accent-900':'#101929','--color-bg':'#f6f2ea','--color-surface':'#e7e3d9'},
+  Terracotta:{'--color-accent':'#c67139','--color-accent-100':'#fff2eb','--color-accent-200':'#ffe1d0','--color-accent-300':'#ffc6a5','--color-accent-400':'#f6a06b','--color-accent-500':'#d67f48','--color-accent-600':'#b2622d','--color-accent-700':'#8c491a','--color-accent-800':'#643312','--color-accent-900':'#402310','--color-bg':'#f5ead8','--color-surface':'#ebddc5'}
+};
+
+const WHO_BTN={display:'flex',alignItems:'center',gap:'10px',padding:'13px 14px',borderRadius:'999px',cursor:'pointer',font:'inherit',fontSize:'14px',textAlign:'left'};
+const RULE_BTN={display:'flex',alignItems:'center',justifyContent:'space-between',gap:'10px',padding:'14px 18px',borderRadius:'999px',cursor:'pointer',font:'inherit',fontSize:'15px',textAlign:'left',width:'100%'};
+const SEV_BTN={display:'flex',flexDirection:'column',alignItems:'center',gap:'2px',padding:'12px 6px',borderRadius:'24px',cursor:'pointer',font:'inherit',fontSize:'13px'};
+const FILTER_BTN={padding:'7px 15px',borderRadius:'999px',cursor:'pointer',font:'inherit',fontSize:'13px'};
+const AVATAR={width:'28px',height:'28px',borderRadius:'50%',color:'var(--color-bg)',display:'grid',placeItems:'center',fontSize:'11px',fontWeight:700,flex:'none'};
+const AV_ME='var(--color-accent-600)', AV_THEM='var(--color-accent-2-600)';
+const TAB_BTN={display:'flex',flexDirection:'column',alignItems:'center',gap:'4px',fontSize:'10px',letterSpacing:'0.04em',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',padding:'6px 0'};
+const DEST_BTN={display:'flex',alignItems:'center',gap:'12px',padding:'15px 18px',borderRadius:'26px',cursor:'pointer',font:'inherit',textAlign:'left',width:'100%'};
+const DOT={width:'18px',height:'18px',borderRadius:'50%',flex:'none',border:'2px solid var(--color-accent)'};
+const ROW_BTN={display:'flex',alignItems:'center',gap:'12px',padding:'15px 18px',background:'var(--color-surface)',borderRadius:'26px',border:'1px solid transparent',cursor:'pointer',font:'inherit',textAlign:'left',width:'100%'};
+const NDOT={width:'9px',height:'9px',borderRadius:'50%',flex:'none',marginTop:'6px'};
+const TRACK={width:'46px',height:'27px',borderRadius:'999px',flex:'none',position:'relative',transition:'background .2s'};
+const KNOB={position:'absolute',top:'3px',width:'21px',height:'21px',borderRadius:'50%',background:'var(--color-bg)',boxShadow:'var(--shadow-sm)',transition:'left .2s'};
+
+class Component extends DCLogic {
+  applyPalette() {
+    const p = PALETTES[this.props.palette] || PALETTES.Mulberry;
+    Object.keys(p).forEach(k => document.documentElement.style.setProperty(k, p[k]));
+  }
+  componentDidMount() { this.applyPalette(); }
+  componentDidUpdate(prev) { if (prev.palette !== this.props.palette) this.applyPalette(); }
+
+  state = {
+    screen:this.props.startScreen === 'Home' ? 'home' : 'welcome', me:'Alex', partner:'Sam', fines:SEED, nextId:100,
+    who:null, ruleId:null, sev:'bad', lastFine:null, coins:15,
+    rules:RULES.slice(), editingRuleId:null, editName:'', editPrice:'', cashedAmt:0, cashedDest:'', cashedSpun:false, addingRule:false, newRuleName:'', newRulePrice:'', customName:'', customAmt:'', saveAsRule:false,
+    filter:'all', dest:'date', totalEver:112,
+    notif:{fined:true, selfFined:true, milestone:true}, mystery:false, peeking:false,
+    animCoin:false
+  };
+
+  money = n => '$' + n.toFixed(2);
+  hidden = n => '$' + n.toFixed(2).replace(/[0-9]/g, '•');
+  veil = n => (this.state.mystery && !this.state.peeking) ? this.hidden(n) : this.money(n);
+  peek = () => {
+    clearTimeout(this._peek);
+    this.setState({peeking:true});
+    this._peek = setTimeout(() => this.setState({peeking:false}), 2200);
+  };
+  componentWillUnmount() { clearTimeout(this._peek); }
+  sum = w => this.state.fines.filter(f => !w || f.who === w).reduce((a,f) => a + f.amt, 0);
+  go = s => () => this.setState({screen:s, animCoin:false});
+
+  num = v => Math.round((parseFloat(String(v).replace(/[^0-9.]/g, '')) || 0) * 100) / 100;
+
+  submit = () => {
+    const s = this.state, sev = SEVS.find(x => x.id === s.sev);
+    if (!s.who || !s.ruleId) return;
+    let amt, label, sevId;
+    if (s.ruleId === 'custom') {
+      amt = this.num(s.customAmt);
+      if (!amt) return;
+      label = s.customName.trim() || 'Something else';
+      sevId = 'one-off';
+      if (s.saveAsRule) this.setState(st => ({rules:st.rules.concat([{id:'r' + st.nextId + 'c', name:label, price:amt}])}));
+    } else {
+      const rule = s.rules.find(r => r.id === s.ruleId);
+      if (!rule) return;
+      amt = rule.price * sev.mult; label = rule.name; sevId = sev.id;
+    }
+    const f = {id:s.nextId, who:s.who, by:'A', rule:s.ruleId, label:label, sev:sevId, amt:amt, when:'Just now', day:new Date().getDay()};
+    this.setState(st => ({
+      fines:[f].concat(st.fines), nextId:st.nextId + 1, lastFine:f,
+      coins:Math.min(SLOTS.length, st.coins + 1), animCoin:true,
+      screen:'landed', who:null, ruleId:null, sev:'bad', customName:'', customAmt:'', saveAsRule:false
+    }));
+  };
+
+  addRule = () => {
+    const s = this.state, name = s.newRuleName.trim(), price = this.num(s.newRulePrice);
+    if (!name || !price) return;
+    this.setState(st => ({
+      rules:st.rules.concat([{id:'r' + st.nextId, name:name, price:price}]),
+      nextId:st.nextId + 1, addingRule:false, newRuleName:'', newRulePrice:''
+    }));
+  };
+
+  undo = () => this.setState(s => ({
+    fines:s.fines.filter(f => f.id !== (s.lastFine || {}).id),
+    coins:Math.max(3, s.coins - 1), lastFine:null, animCoin:false, screen:'home'
+  }));
+
+  cashout = () => {
+    const s = this.state, amt = this.sum();
+    const d = DESTS.find(x => x.id === s.dest) || DESTS[0];
+    const pool = DESTS.filter(x => x.id !== 'wheel');
+    const name = d.id === 'wheel' ? pool[Math.floor(Math.random() * pool.length)].name : d.name;
+    this.setState({
+      fines:[], coins:3, totalEver:s.totalEver + amt, cashedAmt:amt, cashedDest:name,
+      cashedSpun:d.id === 'wheel', screen:'cashedout', animCoin:false
+    });
+  };
+
+  openRule = id => () => {
+    const r = this.state.rules.find(x => x.id === id);
+    if (r) this.setState({screen:'rule', editingRuleId:id, editName:r.name, editPrice:r.price.toFixed(2)});
+  };
+
+  saveEdit = () => {
+    const s = this.state, name = s.editName.trim(), price = this.num(s.editPrice);
+    if (!name || !price) return;
+    this.setState(st => ({
+      rules:st.rules.map(r => r.id === st.editingRuleId ? {id:r.id, name:name, price:price} : r),
+      screen:'rules', editingRuleId:null
+    }));
+  };
+
+  deleteRule = () => this.setState(st => ({
+    rules:st.rules.filter(r => r.id !== st.editingRuleId), screen:'rules', editingRuleId:null
+  }));
+
+  pill = (on, base) => Object.assign({}, base, on
+    ? {background:'var(--color-accent-600)', color:'var(--color-bg)', border:'1px solid var(--color-accent-600)'}
+    : {background:'var(--color-surface)', color:'var(--color-text)', border:'1px solid transparent'});
+  tabStyle = on => Object.assign({}, TAB_BTN, {color:on ? 'var(--color-accent)' : 'var(--color-neutral-600)'});
+
+  renderVals() {
+    const s = this.state, total = this.sum(), meT = this.sum('A'), pT = this.sum('S');
+    const sc = s.screen;
+    const animOn = this.props.coinAnimation !== false;
+    const coinLayer = React.createElement('g', {key:'coins'}, SLOTS.slice(0, s.coins).map((p, i) => {
+      const isNew = animOn && s.animCoin && i === s.coins - 1;
+      return React.createElement('circle', {
+        key:i, cx:p[0], cy:p[1], r:p[2], fill:COIN_FILLS[i % COIN_FILLS.length],
+        style:isNew ? {animation:'coinDrop .65s cubic-bezier(.34,1.25,.64,1) both', transformOrigin:p[0] + 'px ' + p[1] + 'px'} : undefined
+      });
+    }));
+
+    const byLabel = {};
+    s.fines.forEach(x => {
+      const k = x.label || (RULES.find(r => r.id === x.rule) || {}).name || 'Other';
+      byLabel[k] = (byLabel[k] || 0) + x.amt;
+    });
+    const ruleTotals = Object.keys(byLabel).map(k => ({id:k, name:k, raw:byLabel[k]}))
+      .sort((a,b) => b.raw - a.raw).slice(0, 4);
+    const maxRule = Math.max(1, ruleTotals[0] ? ruleTotals[0].raw : 1);
+    const byDay = DAYS.map((d,i) => s.fines.filter(f => f.day === i).reduce((a,f) => a + f.amt, 0));
+    const maxDay = Math.max(1, ...byDay);
+    const rule = s.rules.find(r => r.id === s.ruleId);
+    const sev = SEVS.find(x => x.id === s.sev);
+    const isCustom = s.ruleId === 'custom';
+    const pending = isCustom ? this.num(s.customAmt) : (rule ? rule.price * sev.mult : 0);
+    const ready = !!s.who && (isCustom ? pending > 0 : !!rule);
+    const last = s.lastFine;
+    const filtered = s.filter === 'all' ? s.fines : s.fines.filter(f => f.who === s.filter);
+
+    return {
+      isWelcome:sc === 'welcome', isPair:sc === 'pair', isHome:sc === 'home', isLog:sc === 'log',
+      isLanded:sc === 'landed', isHistory:sc === 'history', isStats:sc === 'stats', isRules:sc === 'rules',
+      isCashout:sc === 'cashout', isNotifications:sc === 'notifications', isSettings:sc === 'settings',
+      isRuleDetail:sc === 'rule', isCashedOut:sc === 'cashedout',
+      cashedAmtStr:this.money(s.cashedAmt), cashedDest:s.cashedDest,
+      cashedNote:s.cashedSpun ? 'The wheel picked it. No appeals.' : 'Agreed by both of you.',
+      editName:s.editName, editPrice:s.editPrice,
+      setEditName:e => this.setState({editName:e.target.value}),
+      setEditPrice:e => this.setState({editPrice:e.target.value}),
+      saveEdit:this.saveEdit, deleteRule:this.deleteRule,
+      editRuleCost:this.money(s.fines.filter(x => x.rule === s.editingRuleId).reduce((a,x) => a + x.amt, 0)),
+      editRuleCount:s.fines.filter(x => x.rule === s.editingRuleId).length + ' fines logged',
+      editMild:'Mild ' + this.money(this.num(s.editPrice)),
+      editBad:'Bad ' + this.money(this.num(s.editPrice) * 2),
+      editUnforgivable:'Unforgivable ' + this.money(this.num(s.editPrice) * 3),
+      showTabs:['home','history','stats','rules'].indexOf(sc) > -1,
+      tabHomeStyle:this.tabStyle(sc === 'home'), tabHistoryStyle:this.tabStyle(sc === 'history'),
+      tabStatsStyle:this.tabStyle(sc === 'stats'), tabRulesStyle:this.tabStyle(sc === 'rules'),
+
+      coinLayer, totalStr:this.money(total), displayTotal:this.veil(total),
+      mystery:s.mystery, peekLabel:s.peeking ? 'Hiding again…' : 'Peek',
+      peek:this.peek,
+      meDisplay:this.veil(meT), partnerDisplay:this.veil(pT),
+      mysteryRowStyle:Object.assign({}, DEST_BTN, {gap:'14px', padding:'16px 18px', background:s.mystery ? 'var(--color-accent-100)' : 'var(--color-surface)', border:'1px solid transparent'}),
+      mysteryTrack:Object.assign({}, TRACK, {background:s.mystery ? 'var(--color-accent-500)' : 'var(--color-neutral-300)'}),
+      mysteryKnob:Object.assign({}, KNOB, {left:s.mystery ? '22px' : '3px'}),
+      toggleMystery:() => this.setState(st => ({mystery:!st.mystery, peeking:false})),
+      homeSub:s.mystery && !s.peeking ? s.fines.length + ' fines in, total sealed' : s.fines.length + ' fines since 4 March',
+      fineCountStr:s.fines.length + ' fines, all forgiven',
+      meName:s.me, partnerName:s.partner, meInitial:s.me.charAt(0), partnerInitial:s.partner.charAt(0),
+      meTotalStr:this.money(meT), partnerTotalStr:this.money(pT),
+      meLedgerStyle:(s.mystery && !s.peeking)
+        ? {background:'var(--color-accent-300)', transition:'width .5s ease', width:'50%'}
+        : {background:'var(--color-accent-500)', transition:'width .5s ease', width:(total ? Math.round(meT / total * 100) : 50) + '%'},
+      partnerLedgerStyle:(s.mystery && !s.peeking)
+        ? {flex:1, background:'var(--color-accent-2-300)'}
+        : {flex:1, background:'var(--color-accent-2-500)'},
+      meStatBar:{width:'100%', borderRadius:'18px 18px 8px 8px', background:'var(--color-accent-500)', height:Math.round(20 + meT / Math.max(meT, pT, 1) * 56) + 'px'},
+      partnerStatBar:{width:'100%', borderRadius:'18px 18px 8px 8px', background:'var(--color-accent-2-500)', height:Math.round(20 + pT / Math.max(meT, pT, 1) * 56) + 'px'},
+      totalEverStr:'$' + s.totalEver.toFixed(0),
+
+      startJar:this.go('pair'), goHome:this.go('home'), goLog:this.go('log'), goHistory:this.go('history'),
+      goStats:this.go('stats'), goRules:this.go('rules'), goCashout:this.go('cashout'),
+      goNotifications:this.go('notifications'), goSettings:this.go('settings'),
+      submitFine:this.submit, undoLast:this.undo, doCashout:this.cashout,
+      resetDemo:() => this.setState({fines:SEED, rules:RULES.slice(), coins:15, screen:'home', totalEver:112, animCoin:false}),
+      setMeName:e => this.setState({me:e.target.value || 'You'}),
+      setPartnerName:e => this.setState({partner:e.target.value || 'Them'}),
+
+      pickMe:() => this.setState({who:'A'}), pickPartner:() => this.setState({who:'S'}),
+      whoMeStyle:this.pill(s.who === 'A', WHO_BTN), whoPartnerStyle:this.pill(s.who === 'S', WHO_BTN),
+      meAvatarStyle:Object.assign({}, AVATAR, {width:'28px', height:'28px', fontSize:'12px'}, s.who === 'A'
+        ? {background:'var(--color-bg)', color:'var(--color-accent-700)'}
+        : {background:AV_ME, color:'var(--color-bg)'}),
+      partnerAvatarStyle:Object.assign({}, AVATAR, {width:'28px', height:'28px', fontSize:'12px'}, s.who === 'S'
+        ? {background:'var(--color-bg)', color:'var(--color-accent-2-700)'}
+        : {background:AV_THEM, color:'var(--color-bg)'}),
+      ruleChoices:s.rules.map(r => ({id:r.id, name:r.name, priceStr:this.money(r.price), style:this.pill(s.ruleId === r.id, RULE_BTN), pick:() => this.setState({ruleId:r.id})})),
+      isOneOff:sc === 'oneoff', showSeverity:true,
+      customChoiceStyle:this.pill(false, RULE_BTN),
+      goOneOff:() => this.setState({screen:'oneoff', ruleId:'custom'}),
+      oneOffDisabled:!(s.who && this.num(s.customAmt) > 0),
+      oneOffCta:s.who && this.num(s.customAmt) > 0 ? 'Add ' + this.money(this.num(s.customAmt)) + ' to the jar' : 'Add an amount',
+      quickAmounts:[1,2,5,10].map(v => ({
+        id:v, label:'$' + v,
+        style:this.pill(this.num(s.customAmt) === v, Object.assign({}, FILTER_BTN, {flex:'1', fontSize:'14px', padding:'9px 0'})),
+        pick:() => this.setState({customAmt:String(v)})
+      })),
+      saveRuleRowStyle:Object.assign({}, DEST_BTN, {gap:'14px', padding:'16px 18px', background:'var(--color-surface)', border:'1px solid transparent'}),
+      saveRuleTrack:Object.assign({}, TRACK, {background:s.saveAsRule ? 'var(--color-accent-500)' : 'var(--color-neutral-300)'}),
+      saveRuleKnob:Object.assign({}, KNOB, {left:s.saveAsRule ? '22px' : '3px'}),
+      toggleSaveRule:() => this.setState(st => ({saveAsRule:!st.saveAsRule})),
+      customName:s.customName, customAmt:s.customAmt,
+      setCustomName:e => this.setState({customName:e.target.value}),
+      setCustomAmt:e => this.setState({customAmt:e.target.value}),
+      addingRule:s.addingRule, notAddingRule:!s.addingRule,
+      startAddRule:() => this.setState({addingRule:true}),
+      cancelRule:() => this.setState({addingRule:false, newRuleName:'', newRulePrice:''}),
+      saveRule:this.addRule,
+      newRuleName:s.newRuleName, newRulePrice:s.newRulePrice,
+      setNewRuleName:e => this.setState({newRuleName:e.target.value}),
+      setNewRulePrice:e => this.setState({newRulePrice:e.target.value}),
+      sevChoices:SEVS.map(x => ({id:x.id, name:x.name, mult:'×' + x.mult, style:this.pill(s.sev === x.id, SEV_BTN), pick:() => this.setState({sev:x.id})})),
+      logDisabled:!ready,
+      logCta:ready ? 'Add ' + this.money(pending) + ' to the jar' : 'Pick who and what',
+
+      lastAmountStr:last ? this.money(last.amt) : '',
+      lastLine:last ? (last.who === 'A' ? s.me : s.partner) + ' · ' + (last.label || '') : '',
+      landedSub:last ? (last.who === 'A' ? s.partner : s.me) + ' just got a notification.' : '',
+
+      filters:[{id:'all',name:'Everyone'},{id:'A',name:s.me},{id:'S',name:s.partner}].map(f => ({
+        id:f.id, name:f.name, style:this.pill(s.filter === f.id, FILTER_BTN), pick:() => this.setState({filter:f.id})
+      })),
+      historyEmpty:filtered.length === 0,
+      historyGroups:filtered.reduce((acc, x) => {
+        const r = s.rules.find(y => y.id === x.rule);
+        const row = {
+          id:x.id, initial:x.who === 'A' ? s.me.charAt(0) : s.partner.charAt(0),
+          avatarStyle:Object.assign({}, AVATAR, {background:x.who === 'A' ? AV_ME : AV_THEM}),
+          rule:x.label || (r ? r.name : 'Fine'), meta:x.sev + ' · ' + x.when, amt:this.money(x.amt)
+        };
+        const g = acc[acc.length - 1];
+        if (g && g.when === x.when) { g.rows.push(row); g.raw += x.amt; g.total = this.veil(g.raw); }
+        else acc.push({id:x.when + '-' + x.id, when:x.when, raw:x.amt, total:this.veil(x.amt), rows:[row]});
+        return acc;
+      }, []),
+      notifEmpty:s.fines.length === 0,
+      notifFeed:s.fines.slice(0, 4).map(x => {
+        const r = s.rules.find(y => y.id === x.rule);
+        return {
+          id:x.id,
+          title:(x.by || 'S') === 'A'
+            ? (x.who === 'A' ? 'You fined yourself ' + this.money(x.amt) : 'You fined ' + s.partner + ' ' + this.money(x.amt))
+            : (x.who === 'A' ? s.partner + ' fined you ' + this.money(x.amt) : s.partner + ' fined themselves ' + this.money(x.amt)),
+          meta:(x.label || (r ? r.name : 'Fine')) + ' · ' + x.when,
+          dotStyle:Object.assign({}, NDOT, {background:x.who === 'A' ? 'var(--color-accent-500)' : 'var(--color-accent-2-500)'})
+        };
+      }),
+      historyRows:filtered.map(f => {
+        const r = s.rules.find(x => x.id === f.rule);
+        return {
+          id:f.id, initial:f.who === 'A' ? s.me.charAt(0) : s.partner.charAt(0),
+          avatarStyle:Object.assign({}, AVATAR, {background:f.who === 'A' ? AV_ME : AV_THEM}),
+          rule:f.label || (r ? r.name : 'Fine'), meta:f.sev + ' · ' + f.when, amt:this.money(f.amt)
+        };
+      }),
+      ruleRows:s.rules.map(r => ({id:r.id, name:r.name, priceStr:this.money(r.price), rowStyle:ROW_BTN, open:this.openRule(r.id)})),
+      ruleTotals:ruleTotals.map(r => ({id:r.id, name:r.name, amt:this.veil(r.raw), barStyle:{height:'100%', background:'var(--color-accent-500)', width:Math.round(r.raw / maxRule * 100) + '%'}})),
+      weekBars:DAYS.map((d,i) => ({
+        id:d, label:d.charAt(0),
+        barStyle:{width:'100%', borderRadius:'8px', height:Math.max(6, Math.round(byDay[i] / maxDay * 58)) + 'px', background:byDay[i] === maxDay ? 'var(--color-accent-500)' : 'var(--color-accent-200)'}
+      })),
+
+      destChoices:DESTS.map(d => ({
+        id:d.id, name:d.name, note:d.note,
+        style:Object.assign({}, DEST_BTN, {
+          background:s.dest === d.id ? 'var(--color-accent-100)' : 'var(--color-surface)',
+          border:s.dest === d.id ? '1px solid var(--color-accent)' : '1px solid transparent'
+        }),
+        dotStyle:Object.assign({}, DOT, {
+          background:s.dest === d.id ? 'var(--color-accent)' : 'transparent',
+          boxShadow:s.dest === d.id ? 'inset 0 0 0 3px var(--color-bg)' : 'none'
+        }),
+        pick:() => this.setState({dest:d.id})
+      })),
+      cashoutCta:s.mystery ? 'Cash out and reveal' : 'Cash out ' + this.money(total),
+
+      notifRows:[
+        {id:'fined', name:s.partner + ' fines you', note:'The moment it lands'},
+        {id:'selfFined', name:s.partner + ' fines themselves', note:'Rare, but worth celebrating'},
+        {id:'milestone', name:'The jar hits a round number', note:'$50, $100, and so on'}
+      ].map(n => ({
+        id:n.id, name:n.name, note:n.note,
+        trackStyle:Object.assign({}, TRACK, {background:s.notif[n.id] ? 'var(--color-accent-500)' : 'var(--color-neutral-300)'}),
+        knobStyle:Object.assign({}, KNOB, {left:s.notif[n.id] ? '22px' : '3px'}),
+        toggle:() => this.setState(st => ({notif:Object.assign({}, st.notif, {[n.id]:!st.notif[n.id]})}))
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

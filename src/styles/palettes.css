@@ -1,0 +1,93 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Palettes.
+
+   The app ships four. Each overrides the same custom properties on :root, so
+   switching is a single attribute write on <html> and nothing else changes.
+
+   Note on the sage ramp: the prototype set --color-accent-2-* once, globally,
+   and its per-palette objects only ever carried accent / bg / surface. So the
+   second voice is the same sage in all four palettes. That is reproduced
+   exactly here — the sage block below sits outside the palette overrides.
+
+   Contrast rule: the 500 step of both ramps is too light to carry cream text
+   at body sizes (3.42:1 and 2.74:1). Anything with text or a glyph on an
+   accent fill uses the 600 step (7.11:1 and 5.82:1). The 500 step is for
+   non-text fills only — chart bars, coins, toggle tracks. True in all four.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* The second voice — sage. Shared by every palette. */
+:root {
+  --color-accent-2: #5f7355;
+  --color-accent-2-100: #eef5e6;
+  --color-accent-2-200: #deead1;
+  --color-accent-2-300: #c4d6b3;
+  --color-accent-2-400: #a2b992;
+  --color-accent-2-500: #829a72;
+  --color-accent-2-600: #516343;
+  --color-accent-2-700: #3f4f34;
+  --color-accent-2-800: #2e3a26;
+  --color-accent-2-900: #1d2518;
+}
+
+/* Mulberry — the default, and the one the client selected. */
+:root,
+:root[data-palette='Mulberry'] {
+  --color-bg: #f7f1e8;
+  --color-surface: #ece3d7;
+  --color-accent: #8c4767;
+  --color-accent-100: #fbeef4;
+  --color-accent-200: #f5dce8;
+  --color-accent-300: #e8bed2;
+  --color-accent-400: #d193ae;
+  --color-accent-500: #b06e8d;
+  --color-accent-600: #74405c;
+  --color-accent-700: #5d3349;
+  --color-accent-800: #412433;
+  --color-accent-900: #2a1721;
+}
+
+:root[data-palette='Pine'] {
+  --color-bg: #f6f1e6;
+  --color-surface: #e8e2d4;
+  --color-accent: #2f5d50;
+  --color-accent-100: #eaf4ef;
+  --color-accent-200: #d3e8de;
+  --color-accent-300: #b0d3c3;
+  --color-accent-400: #83b4a0;
+  --color-accent-500: #58927c;
+  --color-accent-600: #275045;
+  --color-accent-700: #1e3f37;
+  --color-accent-800: #16302a;
+  --color-accent-900: #0f211d;
+}
+
+:root[data-palette='Ink'] {
+  --color-bg: #f6f2ea;
+  --color-surface: #e7e3d9;
+  --color-accent: #2f4a7a;
+  --color-accent-100: #ecf1fa;
+  --color-accent-200: #dae4f5;
+  --color-accent-300: #b9cbeb;
+  --color-accent-400: #90a9d8;
+  --color-accent-500: #6b87bf;
+  --color-accent-600: #283f68;
+  --color-accent-700: #1f3152;
+  --color-accent-800: #17253d;
+  --color-accent-900: #101929;
+}
+
+/* Terracotta — the Organic system's own default. */
+:root[data-palette='Terracotta'] {
+  --color-bg: #f5ead8;
+  --color-surface: #ebddc5;
+  --color-accent: #c67139;
+  --color-accent-100: #fff2eb;
+  --color-accent-200: #ffe1d0;
+  --color-accent-300: #ffc6a5;
+  --color-accent-400: #f6a06b;
+  --color-accent-500: #d67f48;
+  --color-accent-600: #b2622d;
+  --color-accent-700: #8c491a;
+  --color-accent-800: #643312;
+  --color-accent-900: #402310;
+}
