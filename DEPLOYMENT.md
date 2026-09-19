@@ -5,16 +5,18 @@
 The project has to be created under the Vercel account that will own it — importing the repo is
 the whole setup, since Next.js needs no configuration on Vercel.
 
-1. **Import the repo.** Vercel → Add New → Project → import `sorry-jar-app/jar-app`.
-   If the repo does not appear, the Vercel GitHub app has not been granted access to the
-   `sorry-jar-app` org: *Adjust GitHub App Permissions* on the import screen, or
-   GitHub → org Settings → GitHub Apps → Vercel → Repository access.
+1. **Install the Vercel GitHub App on the org first.** As of this writing the only app installed
+   on `sorry-jar-app` is Supabase, so `jar-app` will not appear in any Vercel account's import
+   list until Vercel is added. Either use *Adjust GitHub App Permissions* on Vercel's import
+   screen, or GitHub → org Settings → GitHub Apps → Vercel → grant access to `jar-app`.
 
-2. **Settings — all defaults.** Framework preset auto-detects as Next.js. Do not override the
+2. **Import the repo.** Vercel → Add New → Project → import `sorry-jar-app/jar-app`.
+
+3. **Settings — all defaults.** Framework preset auto-detects as Next.js. Do not override the
    build command, output directory or install command; `next.config.ts` only switches to a static
    export when `BUILD_TARGET=capacitor` is set, which Vercel must **not** set.
 
-3. **Environment variables** (Production, Preview and Development):
+4. **Environment variables** (Production, Preview and Development):
 
    | Name | Value |
    | --- | --- |
@@ -24,7 +26,7 @@ the whole setup, since Next.js needs no configuration on Vercel.
    The anon key is public by design — row level security is what protects the data.
    **Never** add the `service_role` key, and never prefix anything secret with `NEXT_PUBLIC_`.
 
-4. **Domain.** Production domain is `sorryjar.app`, which is what the Pairing screen's invite link
+5. **Domain.** Production domain is `sorryjar.app`, which is what the Pairing screen's invite link
    already says (`sorryjar.app/j/4k2p`, `src/lib/constants.ts`). Changing the production domain
    means changing that constant too, or the invite link lies.
 
