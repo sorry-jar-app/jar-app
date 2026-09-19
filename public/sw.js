@@ -9,7 +9,7 @@
  * lib/storage, and syncing it is the backend's job, not the worker's.
  */
 
-const VERSION = 'sorry-jar-v1';
+const VERSION = 'sorry-jar-v2';
 const SHELL = ['/', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

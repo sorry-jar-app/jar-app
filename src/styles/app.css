@@ -13,12 +13,12 @@
 :root {
   /* The prototype's 46px top padding becomes the safe-area inset in
      production — the real OS draws the status bar. */
-  --sj-top: max(46px, env(safe-area-inset-top));
-  --sj-bottom: max(34px, env(safe-area-inset-bottom));
+  --sj-top: max(46px, env(safe-area-inset-top, 0px));
+  --sj-bottom: max(34px, env(safe-area-inset-bottom, 0px));
   --sj-gutter: 24px;
 
   /* Tab bar: 11px top padding + ~48px of content + 26px bottom padding. */
-  --sj-tabbar-pad-bottom: max(26px, env(safe-area-inset-bottom));
+  --sj-tabbar-pad-bottom: max(26px, env(safe-area-inset-bottom, 0px));
   --sj-tabbar-space: calc(70px + var(--sj-tabbar-pad-bottom));
 }
 
@@ -236,7 +236,7 @@ a,
 /* ── sticky footer with the primary CTA ────────────────────────────────── */
 
 .sj-footer {
-  padding: 12px var(--sj-gutter) max(26px, env(safe-area-inset-bottom));
+  padding: 12px var(--sj-gutter) max(26px, env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--color-divider);
   background: var(--color-bg);
 }
