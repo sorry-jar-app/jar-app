@@ -15,6 +15,7 @@ Domains: `imsorryjar.app`, `imsorry.app`, `sorryjar.app`.
 | Styling | Plain CSS with custom properties — the **Organic** design system, ported verbatim |
 | State | React reducer + context (`src/lib/store.tsx`), persisted to localStorage |
 | Native | Capacitor 8 (static export target) |
+| Database | Supabase (Postgres + RLS), applied by the GitHub integration on merge to `main` |
 | Deploy | Vercel |
 
 No Tailwind, no CSS-in-JS, no component library. The design system is one stylesheet of tokens and
@@ -24,8 +25,11 @@ classes; everything else reads from it.
 
 ```bash
 npm install
-npm run dev          # http://localhost:3000
+cp .env.example .env.local   # fill in from the Supabase project's API settings
+npm run dev                  # http://localhost:3000
 ```
+
+The app runs without Supabase configured — state falls back to localStorage.
 
 | Script | What it does |
 | --- | --- |
@@ -71,6 +75,9 @@ src/
     organic.css           The design system, ported verbatim (see the header comment)
     palettes.css          The four palettes
     app.css               App classes — every repeated pattern from the prototype
+supabase/
+  migrations/           Applied on merge to main by the GitHub integration
+  README.md             The schema, and the decisions behind it
 ```
 
 ## Things that will bite you
@@ -96,9 +103,19 @@ Undo on the landed screen. Disputes happen out loud, not in the app.
 **The jar is a placeholder.** Hand-built SVG. It reads correctly, but it needs real artwork from an
 illustrator before launch.
 
+## Backend
+
+The schema lives in [`supabase/`](supabase/) and is documented in
+[`supabase/README.md`](supabase/README.md) — tables, the three atomic functions, and the RLS
+model. It has been applied to a clean Postgres and exercised end to end.
+
+The **client is not wired to it yet**. `src/lib/storage.ts` is still localStorage, and it is the
+seam: everything above it is written against the store, so swapping in Supabase is that one file
+plus making the store's writes async.
+
 ## Not built yet
 
-The prototype had no backend, and neither does this yet. Needed for production:
+Needed before this is a real product:
 
 - **Auth and pairing** — Sign in with Apple/Google, then pair by invite code or link
   (`sorryjar.app/j/<code>`), SMS invite optional. **Solo use before pairing must keep working.**
@@ -106,10 +123,7 @@ The prototype had no backend, and neither does this yet. Needed for production:
 - **Push** — three triggers only: partner fined you, partner fined themselves, jar crossed a round
   number. Nothing else. The client explicitly declined streak reminders, weekly recaps and
   re-engagement nudges.
-- **Persistence** — fines, rules, names, jar start date, cash-out history, per-user settings.
 - **Export** — the Settings row promises CSV of fine history.
-
-`src/lib/storage.ts` is the seam. Everything above it is written against the store, so swapping
-localStorage for a real backend is one file plus making the store's writes async.
+- **The jar illustration** — real artwork to replace the placeholder SVG.
 
 **Money stays tracked-only.** No payment rails, no balance transfer, no disbursement.

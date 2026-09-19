@@ -41,3 +41,7 @@ yarn-error.log*
 
 # stray screenshots dropped into the project root
 /Screenshot*.png
+
+# supabase local
+supabase/.temp/
+supabase/.branches/
