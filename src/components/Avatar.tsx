@@ -28,7 +28,9 @@ export function Avatar({
       style={{
         width: size,
         height: size,
-        fontSize: size >= 28 ? 12 : 11,
+        // Font size stays with .sj-avatar (11px, the prototype's value). Only
+        // scale it if the disc itself is scaled away from the 28px default.
+        fontSize: size === 28 ? undefined : Math.round(size * 0.39),
         background: inverted ? 'var(--color-bg)' : filled,
         color: inverted ? invertedInk : 'var(--color-bg)',
       }}

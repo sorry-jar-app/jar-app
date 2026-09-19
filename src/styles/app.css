@@ -248,6 +248,17 @@ body {
 
 .sj-row:hover { background: color-mix(in srgb, var(--color-text) 5%, transparent); }
 
+/* A fully round surface pill — the History fine row. The fill lives here
+   rather than inline so .sj-row:hover can actually win. */
+.sj-row--pill {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 16px;
+  background: var(--color-surface);
+  border-radius: 999px;
+}
+
 /* A surface-filled row — rules list, settings, cash-out destinations. */
 .sj-surface-row {
   display: flex;

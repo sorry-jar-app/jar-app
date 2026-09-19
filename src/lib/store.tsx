@@ -348,7 +348,11 @@ type Ctx = {
   dispatch: React.Dispatch<Action>;
   /** False until localStorage has been read, so the first paint matches SSR. */
   hydrated: boolean;
-  /** True when Mystery jar is on and the user is not mid-Peek. */
+  /**
+   * True when money must be masked: Mystery jar is on and the user is not
+   * mid-Peek — or the persisted settings have not been read yet, in which
+   * case this fails closed. See the note in StoreProvider.
+   */
   sealed: boolean;
   peeking: boolean;
   peek: () => void;
@@ -403,7 +407,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       state,
       dispatch,
       hydrated,
-      sealed: state.mystery && !peeking,
+      // Fails closed before hydration. The reducer starts from INITIAL, where
+      // mystery is false, so a user who has the mode ON would otherwise get
+      // one painted frame of their real total — the server pass and the first
+      // client pass both render it — before localStorage is read. The handoff
+      // is blunt about this: "any single unmasked figure that reveals the
+      // total defeats it." A masked frame for everyone is the cheaper mistake.
+      sealed: !hydrated || (state.mystery && !peeking),
       peeking,
       peek,
     }),

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BarsIcon, JarIcon, ListIcon, RulesIcon } from './Icons';
+import { normalizePath } from './AppShell';
 
 /**
  * Four tabs, on Home / History / Stats / Rules only. Every pushed screen and
@@ -16,7 +17,7 @@ const TABS = [
 ] as const;
 
 export function TabBar() {
-  const pathname = usePathname();
+  const pathname = normalizePath(usePathname());
 
   return (
     <nav className="sj-tabbar" aria-label="Main">

@@ -1,0 +1,120 @@
+'use client';
+
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { Toggle } from '@/components/Toggle';
+import { money } from '@/lib/money';
+import { useStore } from '@/lib/store';
+import type { Fine, NotificationPrefs } from '@/lib/types';
+
+/**
+ * Attributed by who LOGGED the fine (`by`), not who it landed on (`who`) —
+ * the same fine reads differently depending on which of the two sent it.
+ * Individual amounts never seal, so this is money(), not veil().
+ */
+function eventLine(fine: Fine, partner: string): string {
+  const amt = money(fine.amt);
+  if (fine.by === 'A') {
+    return fine.who === 'A'
+      ? `You fined yourself ${amt}`
+      : `You fined ${partner} ${amt}`;
+  }
+  return fine.who === 'A'
+    ? `${partner} fined you ${amt}`
+    : `${partner} fined themselves ${amt}`;
+}
+
+export default function NotificationsPage() {
+  const { state, dispatch } = useStore();
+  const { partner, fines, notif } = state;
+
+  const prefRows: { key: keyof NotificationPrefs; name: string; note: string }[] = [
+    { key: 'fined', name: `${partner} fines you`, note: 'The moment it lands' },
+    {
+      key: 'selfFined',
+      name: `${partner} fines themselves`,
+      note: 'Rare, but worth celebrating',
+    },
+    {
+      key: 'milestone',
+      name: 'The jar hits a round number',
+      note: '$50, $100, and so on',
+    },
+  ];
+
+  return (
+    <div className="sj-screen sj-screen--pushed">
+      <ScreenHeader title="Notifications" backTo="/jar" tight />
+
+      <div className="sj-body" style={{ padding: '16px 24px 20px', gap: '10px' }}>
+        <h6 className="sj-label" style={{ margin: '0 2px' }}>
+          Recent
+        </h6>
+
+        {fines.slice(0, 4).map((fine) => (
+          <div
+            key={fine.id}
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '12px',
+              padding: '14px 18px',
+              background: 'var(--color-accent-100)',
+              borderRadius: '26px',
+            }}
+          >
+            <span
+              className="sj-dot"
+              style={{
+                marginTop: '6px',
+                background:
+                  fine.who === 'A'
+                    ? 'var(--color-accent-500)'
+                    : 'var(--color-accent-2-500)',
+              }}
+            />
+            <span style={{ flex: 1 }}>
+              <span style={{ fontSize: '14px', display: 'block' }}>
+                {eventLine(fine, partner)}
+              </span>
+              <span className="text-muted" style={{ fontSize: '12px' }}>
+                {fine.label} · {fine.when}
+              </span>
+            </span>
+          </div>
+        ))}
+
+        {fines.length === 0 && (
+          <p className="text-muted" style={{ fontSize: '13px', margin: '2px 2px 0' }}>
+            Quiet in here.
+          </p>
+        )}
+
+        <h6 className="sj-label" style={{ margin: '16px 2px 0' }}>
+          Tell me when
+        </h6>
+
+        {prefRows.map((row) => (
+          <button
+            key={row.key}
+            type="button"
+            className="sj-toggle-row"
+            aria-pressed={notif[row.key]}
+            onClick={() => dispatch({ type: 'notif/toggle', key: row.key })}
+          >
+            <span style={{ flex: 1 }}>
+              <span style={{ fontSize: '15px', display: 'block' }}>{row.name}</span>
+              <span className="text-muted" style={{ fontSize: '12px' }}>
+                {row.note}
+              </span>
+            </span>
+            <Toggle on={notif[row.key]} />
+          </button>
+        ))}
+
+        <p className="text-muted" style={{ fontSize: '12px', margin: '6px 2px 0' }}>
+          Nothing else will buzz you. No streak nags, no weekly recaps.
+        </p>
+      </div>
+    </div>
+  );
+}
