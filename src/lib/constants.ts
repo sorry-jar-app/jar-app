@@ -52,14 +52,38 @@ export const COIN_FLOOR = 3;
  * the same in light and dark without a second set of values — and so a change
  * of theme carries the jar with it instead of leaving it behind.
  */
+/*
+ * Mixed toward --background, never --surface.
+ *
+ * Glass's --surface is translucent, and color-mix inherits that alpha — so a
+ * coin mixed with it came out part-transparent over the jar and measured
+ * 1.32:1 against the body in light: one coin in seven you simply could not
+ * see. --background is opaque in both modes.
+ */
 export const COIN_FILLS = [
   'var(--who-a)',
   'var(--who-s)',
-  'color-mix(in srgb, var(--who-a) 62%, var(--surface))',
-  'color-mix(in srgb, var(--foreground) 22%, var(--surface))',
-  'color-mix(in srgb, var(--who-a) 80%, var(--surface))',
-  'color-mix(in srgb, var(--who-s) 55%, var(--surface))',
-  'color-mix(in srgb, var(--who-s) 80%, var(--surface))',
+  'color-mix(in srgb, var(--who-a) 62%, var(--background))',
+  'color-mix(in srgb, var(--foreground) 34%, var(--background))',
+  'color-mix(in srgb, var(--who-a) 80%, var(--background))',
+  'color-mix(in srgb, var(--who-s) 55%, var(--background))',
+  'color-mix(in srgb, var(--who-s) 80%, var(--background))',
+];
+
+/*
+ * Bricks. The two people's hues only — deliberately NOT COIN_FILLS.
+ *
+ * A cleared brick goes to --piece-dead so the wall keeps its shape, and
+ * COIN_FILLS carries a neutral of its own. Sharing the two palettes put a live
+ * grey brick next to a dead grey one and made them the same brick.
+ */
+export const BRICK_FILLS = [
+  'var(--who-a)',
+  'var(--who-s)',
+  'color-mix(in srgb, var(--who-a) 58%, var(--background))',
+  'color-mix(in srgb, var(--who-s) 58%, var(--background))',
+  'color-mix(in srgb, var(--who-a) 80%, var(--background))',
+  'color-mix(in srgb, var(--who-s) 80%, var(--background))',
 ];
 
 /** The jar body silhouette, shared by the hero SVG and the Jar tab glyph. */

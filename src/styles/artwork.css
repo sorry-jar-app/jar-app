@@ -9,6 +9,15 @@
    and on the board. Those two come off the theme's own semantics rather than
    a palette of our own, so switching or restyling the theme carries them with
    it — and so light and dark both work without a second set of numbers.
+
+   Every number below was measured against the composite the viewer actually
+   sees: the fill over the glass over the fixed background gradient, sampled
+   from the top of the viewport to the bottom, because Glass has no opaque
+   layer anywhere and a value that passes at the foot of the screen can fail
+   at the head of it by a whole point. Alphas are higher in light than in dark
+   for the same mark: compositing happens in gamma space, so dropping a dark
+   ink onto a near-white ground moves its luminance far less than lifting a
+   pale one off a near-black ground.
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
@@ -23,23 +32,70 @@
    * So: one warm, one cool, both sitting clear of the theme's blue-violet
    * wash and clear of its danger red, and both dark enough at these steps to
    * carry the pale foreground when something is written on them.
+   *
+   * They also have to differ by WEIGHT, not only by hue. Red against teal is
+   * the classic red-green confusion axis, and at the lightness these two
+   * started on (oklch 55% and 56%) they measured 1.23:1 against each other —
+   * a reader who cannot separate the hues saw one colour. A is now the deep
+   * one and S the light one, in both modes, which is the only part of the
+   * pair that survives being read in greyscale.
+   *
+   * The gap is 2.33:1 in light and 1.82:1 in dark, not the 3:1 that would
+   * make it a graphic in its own right. It cannot be: glass-light's page sits
+   * at 0.65–0.91 relative luminance, so ANY fill that has to read as a shape
+   * on it is capped near 0.19, and two fills inside one narrow band cannot be
+   * three stops apart. Anything that leans on these two alone — the split bar
+   * on /jar, the stats pair, the Four discs — wants a second channel in the
+   * markup, and that is a screen's job, not this file's.
    */
-  --who-a: oklch(55% 0.17 10);
-  --who-s: oklch(56% 0.11 195);
-  --who-a-soft: color-mix(in oklch, var(--who-a) 16%, transparent);
-  --who-s-soft: color-mix(in oklch, var(--who-s) 16%, transparent);
+  --who-a: oklch(40% 0.16 10);
+  /* 53, not 56: it has to carry the pale initial in Avatar. See there. */
+  --who-s: oklch(53% 0.11 195);
+
+  /* The soft steps are a bar in a chart and a step in a stepper, so they have
+     to read as marks, not as a tint of the paper. At the old 16% a non-peak
+     day in /stats measured 1.2:1 against its own card — a bar chart with no
+     visible bars. */
+  --who-a-soft: color-mix(in oklch, var(--who-a) 52%, transparent);
+  --who-s-soft: color-mix(in oklch, var(--who-s) 52%, transparent);
 
   /* Glass and the jar. The body is translucent so the gradient behind it
      shows through, which is the whole reason this theme was chosen. */
-  --jar-glass: color-mix(in srgb, var(--surface) 55%, transparent);
-  --jar-rim: color-mix(in srgb, var(--foreground) 22%, transparent);
+  /* Barely there. The jar is glass, and the gradient behind it is the whole
+     reason this theme was chosen — at 55% it was an opaque grey slab with a
+     gradient hidden behind it. */
+  --jar-glass: color-mix(in srgb, var(--surface) 18%, transparent);
+
+  /* The rim is the only thing that says "jar". The body is 18% of a surface
+     that is itself translucent, so it lands within 1.05:1 of the page and
+     carries no silhouette of its own — at 22% the rim measured 1.64:1 against
+     that body in light, which is an outline nobody can see. 55% is what a 3px
+     stroke needs to clear 3:1 at the top of the gradient, where there is the
+     least to work with. It doubles as the pool table's rail and cloth stroke,
+     which is the only reason that table has an edge. */
+  --jar-rim: color-mix(in srgb, var(--foreground) 55%, transparent);
   --jar-lid: color-mix(in oklch, var(--who-a) 70%, var(--foreground));
 
   /* Game pieces. Non-text fills only — nothing here ever carries a word. */
   --piece-a: var(--who-a);
   --piece-s: var(--who-s);
-  --piece-dead: color-mix(in srgb, var(--foreground) 18%, transparent);
-  --field-ink: color-mix(in srgb, var(--foreground) 45%, transparent);
+
+  /* A spent life, a cleared brick, and — the one that decides it — a peg the
+     coin bounces off in Roll. At 18% a peg measured 1.44:1 inside the jar,
+     which is a pinball table with invisible pins. 52% clears 3:1 on the jar
+     glass and on the pool cloth both. It is meant to read as spent, not as
+     absent. */
+  --piece-dead: color-mix(in srgb, var(--foreground) 52%, transparent);
+
+  /* Pockets, the aim line and the cue tip: the marks a shot is aimed by, so
+     they take the 3:1 of a control rather than the licence of decoration.
+     45% fell to 2.66:1 against the cloth in light. */
+  --field-ink: color-mix(in srgb, var(--foreground) 56%, transparent);
+
+  /* Deliberately still a whisper — 1.15:1 against the page. It is held this
+     faint on purpose: it is the ground the balls sit on, and every step
+     darker costs the cool player contrast they cannot spare in light mode.
+     The field is read by its stroke, not by its fill. */
   --field-wash: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
@@ -61,9 +117,42 @@ body {
   z-index: 0;
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+   Light.
+
+   Glass tints the page with a blue-violet gradient that is strongest at the
+   top of the viewport, so the pale end of the theme is not white — it runs
+   from 0.65 relative luminance at the head of the screen to 0.91 at the foot.
+   Secondary text was measured against that head, not against a card, and the
+   theme's own --muted is too pale for it: 3.20:1 on the page, 3.96:1 on the
+   tab bar, 4.47:1 even on a card. Every .sj-label, every .text-muted, every
+   tab caption and every ListView description in the app is that one value.
+
+   Taking it to oklch 47% clears 4.5:1 everywhere in the frame, worst case
+   4.63:1 at the very top. It is a real step darker than the theme intends,
+   and it is the price of a translucent surface over a tinted ground.
+   ────────────────────────────────────────────────────────────────────────── */
+[data-theme='glass-light'] {
+  --muted: oklch(47% 0.014 285.94);
+}
+
 /* Dark mode lifts both people off the ground so they stay legible against a
-   near-black background without turning fluorescent. */
+   near-black background without turning fluorescent. A is pinned where it is:
+   glass-dark hands the avatar's letter --accent-foreground, which is the dark
+   ink there, and A cannot go below oklch 70% without that letter failing. So
+   the gap between the two is opened from S's end instead.
+
+   The marks all come down, because a pale ink lifting off a near-black ground
+   gains luminance much faster than a dark one loses it on a pale ground. Same
+   3:1, roughly two thirds of the alpha. */
 [data-theme='glass-dark'] {
   --who-a: oklch(70% 0.15 10);
-  --who-s: oklch(72% 0.10 195);
+  --who-s: oklch(84% 0.09 195);
+
+  --who-a-soft: color-mix(in oklch, var(--who-a) 65%, transparent);
+  --who-s-soft: color-mix(in oklch, var(--who-s) 65%, transparent);
+
+  --jar-rim: color-mix(in srgb, var(--foreground) 36%, transparent);
+  --piece-dead: color-mix(in srgb, var(--foreground) 37%, transparent);
+  --field-ink: color-mix(in srgb, var(--foreground) 45%, transparent);
 }

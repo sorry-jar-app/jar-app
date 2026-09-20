@@ -152,7 +152,23 @@
   background: color-mix(in srgb, var(--surface) 62%, transparent);
   backdrop-filter: blur(var(--glass-blur, 20px));
   -webkit-backdrop-filter: blur(var(--glass-blur, 20px));
-  border-top: 1px solid var(--separator);
+  /*
+    The edge is the only thing that separates this bar from the screen, and it
+    has to be drawn rather than borrowed.
+
+    --surface is itself translucent, so 62% of it is white at 0.496 in light
+    and white at 0.0248 in dark. Over the foot of the background gradient that
+    lands the bar within 1.04:1 of the page in BOTH modes — a translucent white
+    plate on a near-white page cannot separate by fill, there is no room left
+    between them. The kit's --separator then drew the boundary at 1.25:1 light
+    and 1.38:1 dark, which is a hairline you cannot see, and content scrolled
+    underneath with nothing to say where the bar began.
+
+    30% of the foreground measures 1.94:1 against the bar in light and 2.63:1
+    in dark: one value, no theme block, and the same weight a phone's own tab
+    bar uses. It still reads from a theme token, so it follows the theme.
+  */
+  border-top: 1px solid color-mix(in srgb, var(--foreground) 30%, transparent);
 }
 
 .sj-tab {
@@ -195,3 +211,44 @@
 }
 
 .text-muted { color: var(--muted); }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Play fields.
+
+   A game's board is the screen — it should take every pixel between the
+   instruction line and the footer, and it never did: the fields were fixed at
+   190–216px on a 390px phone, a little over half the width, with the rest of
+   the screen left empty underneath.
+
+   The original wrappers said `flex: none` for a real reason — a flex child
+   with content will be squashed before a sibling with none — but the answer to
+   "do not shrink" is not "do not grow". This grows, keeps the board's own
+   aspect ratio from its viewBox, and is bounded on both axes so it can never
+   push the footer off the screen.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.sj-field {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sj-field > svg {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* A board taller than it is wide (the pool table, the jar) is height-bound on
+   a phone; a wide one (the Four board) is width-bound. Letting both max-*
+   rules apply and sizing from the intrinsic ratio handles either without the
+   game having to know which it is. */
+.sj-field--tall > svg { height: 100%; }
+.sj-field--wide > svg { width: 100%; }

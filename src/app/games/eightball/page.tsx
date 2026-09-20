@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button, Card } from '@heroui/react';
 import { Avatar } from '@/components/Avatar';
 import { GameGate } from '@/components/games/GameGate';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -38,10 +39,6 @@ import {
 } from '@/lib/games/eightball';
 import type { Person } from '@/lib/types';
 
-/** The 200 x 360 table, scaled to something that fits above the footer. */
-const TABLE_PX_W = 190;
-const TABLE_PX_H = 342;
-
 /** How far one arrow key swings the aim, and how much it moves the power. */
 const AIM_STEP = 0.055;
 const POWER_STEP = 0.08;
@@ -60,7 +57,10 @@ const ENDING_LINE: Record<Ending, string> = {
 const POTTED_LINES = ['That one counted.', 'Still your table.', 'Go on then.'];
 const MISSED_LINES = ['Nothing dropped.', 'Nothing went down.', 'Not a thing.'];
 const SCRATCH_LINE = 'Cue ball in a pocket. Back on the spot.';
-const OPENING_LINE = 'Open table. The eight goes last.';
+// Not "Open table." — the standing line directly under this already says so,
+// and on the opening frame the card read "Open table. The eight goes last."
+// with "Open table." repeated beneath it.
+const OPENING_LINE = 'The eight goes last.';
 
 const TAU = Math.PI * 2;
 const DIRECTIONS = [
@@ -87,14 +87,31 @@ function pick(lines: string[]): string {
  * What a ball is painted with. The table and the status dot both read this, so
  * the dot beside "Stripes, 4 left." cannot drift away from the stripes on the
  * cloth — which it had, to a darker, more saturated sage than anything in play.
+ *
+ * `body` is the disc, `band` is the ring around it — and on a stripe, the band
+ * across its face as well, which is the one thing that tells the two groups
+ * apart at seven units across. The two hues are the artwork's own: the same
+ * pair the avatars, the jar and the split bar use, so a group reads as a
+ * person's colour rather than as a colour this screen made up.
  */
 const BALL_FILL = {
-  solid: { body: 'var(--color-accent-500)', band: 'var(--color-accent-700)' },
-  stripe: { body: 'var(--color-accent-2-300)', band: 'var(--color-accent-2-700)' },
+  solid: { body: 'var(--who-a)', band: 'var(--jar-rim)' },
+  stripe: { body: 'var(--who-s)', band: 'var(--background)' },
 } as const;
 
 function groupFill(group: Group): string {
   return BALL_FILL[group].body;
+}
+
+/**
+ * The shooter's own colour, for the power meter under the table.
+ *
+ * The person, not their group: the meter sits directly under the avatar in the
+ * status card and belongs to whoever is about to shoot. Which group they are
+ * on is said in words, with the dot beside it.
+ */
+function personFill(who: Person): string {
+  return who === 'A' ? 'var(--who-a)' : 'var(--who-s)';
 }
 
 type Phase = 'aiming' | 'rolling' | 'over';
@@ -353,11 +370,21 @@ function EightBallScreen() {
 
   const aimAt = useCallback(
     (clientX: number, clientY: number) => {
+      // Measured on the live element every time, never cached: the table is a
+      // different size on every screen now, and it changes again whenever the
+      // status card under it grows a line.
       const box = svgRef.current?.getBoundingClientRect();
-      if (!box || box.width === 0) return;
+      if (!box || box.width === 0 || box.height === 0) return;
       const cue = balls[0];
-      const dx = ((clientX - box.left) / box.width) * VIEW_W - cue.x;
-      const dy = ((clientY - box.top) / box.height) * VIEW_H - cue.y;
+      // The drawing is centred and letterboxed inside its box whenever the
+      // box's ratio is not the viewBox's, so the pointer goes through the same
+      // scale the SVG used. Stretching it across the whole element would put
+      // the aim a few units off the finger the moment the two disagree.
+      const scale = Math.min(box.width / VIEW_W, box.height / VIEW_H);
+      const inX = (clientX - box.left - (box.width - VIEW_W * scale) / 2) / scale;
+      const inY = (clientY - box.top - (box.height - VIEW_H * scale) / 2) / scale;
+      const dx = inX - cue.x;
+      const dy = inY - cue.y;
       const reach = Math.hypot(dx, dy);
       // Right on top of the cue ball there is no direction to read, so the last
       // one stands and only the power falls away.
@@ -496,140 +523,154 @@ function EightBallScreen() {
         className="sj-body"
         style={{ padding: '4px 24px 14px', gap: 10, alignItems: 'center', textAlign: 'center' }}
       >
-        <p className="text-muted" style={{ fontSize: 13, margin: 0, maxWidth: 270 }}>
+        {/* flex: none on everything around the field: the board is the one
+            thing that gives and takes the leftover height. */}
+        <p className="text-muted" style={{ fontSize: 13, margin: 0, maxWidth: 270, flex: 'none' }}>
           Drag to aim and let go to shoot, or use the arrow keys. The first ball you pot is your
           group; the eight goes last.
         </p>
 
-        {/* flex: none, or the table is the thing that gets squashed on a short phone. */}
-        <div style={{ flex: 'none' }}>
-          <button
-            type="button"
-            className="sj-jar-tap"
-            style={{ touchAction: 'none' }}
-            aria-label="Aim and shoot. Left and right arrows aim, up and down set the power, space shoots."
-            aria-describedby={aimDescId}
-            // aria-disabled rather than disabled: a disabled button drops focus the
-            // moment a shot starts, and a keyboard player would have to tab back to
-            // the table after every turn. Every handler already guards on the phase.
-            aria-disabled={phase !== 'aiming'}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerCancel}
-            onKeyDown={onKeyDown}
-            onClick={onTableClick}
-          >
-            <svg
-              ref={svgRef}
-              viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-              style={{ width: TABLE_PX_W, height: TABLE_PX_H, display: 'block' }}
-              aria-hidden="true"
-            >
-              <rect
-                x="0"
-                y="0"
-                width={VIEW_W}
-                height={VIEW_H}
-                rx="18"
-                fill="var(--color-accent-700)"
-              />
-              <rect
-                x={TABLE.left}
-                y={TABLE.top}
-                width={TABLE.right - TABLE.left}
-                height={TABLE.bottom - TABLE.top}
-                rx={TABLE.corner}
-                fill="var(--color-accent-2-100)"
-              />
-              <line
-                x1={TABLE.left}
-                y1={HEAD_Y}
-                x2={TABLE.right}
-                y2={HEAD_Y}
-                stroke="var(--color-accent-2-300)"
-                strokeWidth="0.8"
-              />
+        {/*
+          The board is the screen.
 
-              {TABLE.pockets.map((pocket, i) => (
-                <circle
-                  key={i}
-                  cx={pocket.x}
-                  cy={pocket.y}
-                  r={pocket.r}
-                  fill="var(--color-accent-900)"
-                />
-              ))}
+          .sj-field takes everything left between the line above and the
+          footer and sizes the drawing off its own viewBox, which is how a
+          200 x 360 table stops being 190px wide on a 390px phone with a
+          screenful of nothing under it. The classes sit on the tap target
+          itself rather than on a wrapper, because .sj-field sizes its direct
+          svg child — and it is declared after .sj-jar-tap, so the grid and the
+          touch-action are the ones that land.
+        */}
+        <button
+          type="button"
+          className="sj-jar-tap sj-field sj-field--tall"
+          aria-label="Aim and shoot. Left and right arrows aim, up and down set the power, space shoots."
+          aria-describedby={aimDescId}
+          // aria-disabled rather than disabled: a disabled button drops focus the
+          // moment a shot starts, and a keyboard player would have to tab back to
+          // the table after every turn. Every handler already guards on the phase.
+          aria-disabled={phase !== 'aiming'}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerCancel}
+          onKeyDown={onKeyDown}
+          onClick={onTableClick}
+        >
+          {/* The viewBox is the physics module's own coordinate system. Only
+              the CSS box around it changes. */}
+          <svg ref={svgRef} viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} aria-hidden="true">
+            {/* The rails, then the cloth. Both are translucent: the gradient
+                behind the app shows through the table the way it shows
+                through the jar, and the rim is what gives it its edge. Inset
+                by a unit so the outline is not half-clipped by the viewBox. */}
+            <rect
+              x="1"
+              y="1"
+              width={VIEW_W - 2}
+              height={VIEW_H - 2}
+              rx="18"
+              fill="var(--jar-glass)"
+              stroke="var(--jar-rim)"
+              strokeWidth="1.5"
+            />
+            <rect
+              x={TABLE.left}
+              y={TABLE.top}
+              width={TABLE.right - TABLE.left}
+              height={TABLE.bottom - TABLE.top}
+              rx={TABLE.corner}
+              fill="var(--field-wash)"
+              stroke="var(--jar-rim)"
+              strokeWidth="1"
+            />
+            <line
+              x1={TABLE.left}
+              y1={HEAD_Y}
+              x2={TABLE.right}
+              y2={HEAD_Y}
+              stroke="var(--piece-dead)"
+              strokeWidth="0.8"
+            />
 
-              <line
-                ref={aimLine}
-                x1={0}
-                y1={0}
-                x2={0}
-                y2={0}
-                stroke="var(--color-accent-600)"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeDasharray="3 6"
-                style={{ opacity: 0 }}
-              />
-              <circle
-                ref={aimTip}
-                cx={0}
-                cy={0}
-                r={2.4}
-                fill="var(--color-accent-600)"
-                style={{ opacity: 0 }}
-              />
+            {TABLE.pockets.map((pocket, i) => (
+              <circle key={i} cx={pocket.x} cy={pocket.y} r={pocket.r} fill="var(--field-ink)" />
+            ))}
 
-              {balls.map((ball, i) => (
-                <g
-                  key={i}
-                  ref={(el) => {
-                    ballNodes.current[i] = el;
-                  }}
-                  transform={`translate(${ball.x} ${ball.y})`}
-                >
-                  {ball.kind === 'cue' && (
+            <line
+              ref={aimLine}
+              x1={0}
+              y1={0}
+              x2={0}
+              y2={0}
+              stroke="var(--field-ink)"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeDasharray="3 6"
+              style={{ opacity: 0 }}
+            />
+            <circle
+              ref={aimTip}
+              cx={0}
+              cy={0}
+              r={2.4}
+              fill="var(--field-ink)"
+              style={{ opacity: 0 }}
+            />
+
+            {balls.map((ball, i) => (
+              <g
+                key={i}
+                ref={(el) => {
+                  ballNodes.current[i] = el;
+                }}
+                transform={`translate(${ball.x} ${ball.y})`}
+              >
+                {/* The cue is the page colour with an ink rim, the eight is
+                    solid ink — hollow against filled, which is what keeps the
+                    two apart once dark mode has swapped which of them is the
+                    pale one. The rim is full strength rather than the 45% the
+                    old one had: at 45% in dark mode the cue read like a
+                    seventh pocket. */}
+                {ball.kind === 'cue' && (
+                  <circle
+                    r={BALL_R}
+                    fill="var(--background)"
+                    stroke="var(--foreground)"
+                    strokeWidth="1"
+                  />
+                )}
+                {ball.kind === 'eight' && <circle r={BALL_R} fill="var(--foreground)" />}
+                {ball.kind === 'solid' && (
+                  <circle
+                    r={BALL_R}
+                    fill={BALL_FILL.solid.body}
+                    stroke={BALL_FILL.solid.band}
+                    strokeWidth="0.7"
+                  />
+                )}
+                {ball.kind === 'stripe' && (
+                  <>
                     <circle
                       r={BALL_R}
-                      fill="var(--color-bg)"
-                      stroke="color-mix(in srgb, var(--color-text) 45%, transparent)"
-                      strokeWidth="1"
-                    />
-                  )}
-                  {ball.kind === 'eight' && <circle r={BALL_R} fill="var(--color-text)" />}
-                  {ball.kind === 'solid' && (
-                    <circle
-                      r={BALL_R}
-                      fill={BALL_FILL.solid.body}
-                      stroke={BALL_FILL.solid.band}
+                      fill={BALL_FILL.stripe.body}
+                      stroke={BALL_FILL.stripe.band}
                       strokeWidth="0.7"
                     />
-                  )}
-                  {ball.kind === 'stripe' && (
-                    <>
-                      <circle
-                        r={BALL_R}
-                        fill={BALL_FILL.stripe.body}
-                        stroke={BALL_FILL.stripe.band}
-                        strokeWidth="0.7"
-                      />
-                      <rect
-                        x={-6.2}
-                        y={-2.4}
-                        width={12.4}
-                        height={4.8}
-                        rx={1.2}
-                        fill={BALL_FILL.stripe.band}
-                      />
-                    </>
-                  )}
-                </g>
-              ))}
-            </svg>
-          </button>
-        </div>
+                    <rect
+                      x={-6.2}
+                      y={-2.4}
+                      width={12.4}
+                      height={4.8}
+                      rx={1.2}
+                      fill={BALL_FILL.stripe.band}
+                    />
+                  </>
+                )}
+              </g>
+            ))}
+          </svg>
+        </button>
 
         <span id={aimDescId} className="sj-visually-hidden">
           Aim {directionOf(shownAim.angle)}. Power {Math.round(shownAim.power * 100)} per cent.
@@ -638,19 +679,29 @@ function EightBallScreen() {
           {spokenAim}
         </span>
 
+        {/*
+          Artwork rather than a Meter: the fill is written straight to the node
+          by paintAim on every pointer move, sixty times a second, and the aim
+          is announced as text — so this is aria-hidden and the kit has nothing
+          to add. The track spans the screen now that the table is not pinned
+          to a width to line up with.
+        */}
         <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            width: '100%',
-            maxWidth: TABLE_PX_W,
-          }}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', flex: 'none' }}
         >
           <span aria-hidden="true" className="text-muted" style={{ fontSize: 12, flex: 'none' }}>
             Power
           </span>
-          <span aria-hidden="true" className="sj-bar-track" style={{ flex: 1 }}>
+          <span
+            aria-hidden="true"
+            style={{
+              flex: 1,
+              height: 6,
+              borderRadius: 999,
+              background: 'var(--piece-dead)',
+              overflow: 'hidden',
+            }}
+          >
             <span
               ref={powerBar}
               style={{
@@ -658,7 +709,7 @@ function EightBallScreen() {
                 height: '100%',
                 width: '55%',
                 borderRadius: 999,
-                background: 'var(--color-accent-500)',
+                background: personFill(turn),
               }}
             />
           </span>
@@ -674,45 +725,53 @@ function EightBallScreen() {
             justifyContent: 'center',
             minHeight: 96,
             width: '100%',
+            flex: 'none',
           }}
         >
-          <div
-            key={say.key}
-            className="sj-panel sj-panel--accent"
-            style={{ display: 'flex', alignItems: 'center', gap: 12 }}
-          >
-            <Avatar person={say.who} initial={initialOf(sayName)} size={34} />
-            <span style={{ textAlign: 'left' }}>
-              <span className="sj-title" style={{ display: 'block', fontSize: 19 }}>
-                {sayName} {say.head}
-              </span>
-              <span className="text-muted" style={{ fontSize: 13 }}>
-                {say.line}
-              </span>
-              {phase !== 'over' && (
-                <span
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}
-                  aria-hidden="true"
-                >
-                  {shooterGroup && (
-                    <span
-                      className="sj-dot"
-                      style={{ width: 8, height: 8, background: groupFill(shooterGroup) }}
-                    />
-                  )}
-                  <span className="text-muted" style={{ fontSize: 12 }}>
-                    {standing}
+          {/* Keyed so a new line remounts the card and the live region speaks
+              even when two turns running say the same thing. */}
+          <Card key={say.key} style={{ width: '100%' }}>
+            <Card.Content style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Avatar person={say.who} initial={initialOf(sayName)} size={34} />
+              <span style={{ textAlign: 'left' }}>
+                <span className="sj-title" style={{ display: 'block', fontSize: 19 }}>
+                  {sayName} {say.head}
+                </span>
+                <span className="text-muted" style={{ fontSize: 13 }}>
+                  {say.line}
+                </span>
+                {phase !== 'over' && (
+                  <span
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}
+                    aria-hidden="true"
+                  >
+                    {shooterGroup && (
+                      <span
+                        style={{
+                          flex: 'none',
+                          display: 'block',
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          background: groupFill(shooterGroup),
+                        }}
+                      />
+                    )}
+                    <span className="text-muted" style={{ fontSize: 12 }}>
+                      {standing}
+                    </span>
                   </span>
-                </span>
-              )}
-              {phase !== 'over' && (
-                <span className="sj-visually-hidden">
-                  {' '}
-                  {spokenStanding} {solidsLeft} solids and {stripesLeft} stripes left on the table.
-                </span>
-              )}
-            </span>
-          </div>
+                )}
+                {phase !== 'over' && (
+                  <span className="sj-visually-hidden">
+                    {' '}
+                    {spokenStanding} {solidsLeft} solids and {stripesLeft} stripes left on the
+                    table.
+                  </span>
+                )}
+              </span>
+            </Card.Content>
+          </Card>
         </div>
       </div>
 
@@ -724,30 +783,35 @@ function EightBallScreen() {
           the last ball, with no action from the player to explain it.
         */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-          <button
-            type="button"
-            className="btn btn-primary btn-block"
-            style={{ height: 54, fontSize: 17, marginTop: 0 }}
-            aria-busy={phase === 'rolling'}
-            // aria-disabled, not disabled, for the same reason the table
-            // button gives: a disabled button drops focus the moment a shot
-            // starts, and this is the control a keyboard player uses every
-            // turn. fire() refuses on the phase and on the firing latch, so a
-            // press while rolling is a no-op.
-            aria-disabled={phase === 'rolling' || undefined}
-            onClick={phase === 'over' ? rackUp : fire}
+          {/*
+            aria-disabled, not isDisabled, for the same reason the table button
+            gives: a real `disabled` drops focus the moment a shot starts, and
+            this is the control a keyboard player uses every turn. fire()
+            refuses on the phase and on the firing latch, so a press while
+            rolling is a no-op.
+
+            Both attributes have to come back through `render`: HeroUI's Button
+            filters everything but the labelling aria-* props off, and sets
+            aria-disabled itself from its own pending state.
+          */}
+          <Button
+            size="lg"
+            fullWidth
+            render={(props) => (
+              <button
+                {...props}
+                aria-busy={phase === 'rolling'}
+                aria-disabled={phase === 'rolling' || undefined}
+              />
+            )}
+            onPress={phase === 'over' ? rackUp : fire}
           >
             {phase === 'over' ? 'Rack them up' : phase === 'rolling' ? 'Rolling…' : 'Take the shot'}
-          </button>
+          </Button>
           {phase === 'over' && (
-            <button
-              type="button"
-              className="btn btn-secondary btn-block"
-              style={{ height: 46, marginTop: 0 }}
-              onClick={logIt}
-            >
+            <Button variant="secondary" size="lg" fullWidth onPress={logIt}>
               {soloJar ? 'Own up and log one' : `Log a fine on ${displayName(state, fineWho)}`}
-            </button>
+            </Button>
           )}
         </div>
         <p className="text-muted" style={{ fontSize: 12, textAlign: 'center', margin: '10px 0 0' }}>

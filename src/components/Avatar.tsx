@@ -32,7 +32,15 @@ export function Avatar({
   size?: number;
 }) {
   const fill = person === 'A' ? 'var(--who-a)' : 'var(--who-s)';
-  const ink = person === 'A' ? 'var(--accent-foreground)' : 'var(--success-foreground)';
+  /**
+   * The same pale ink on both, never the theme's per-semantic foreground.
+   *
+   * S used to take --success-foreground, which glass resolves to its dark ink
+   * in BOTH modes — so in light, S's initial was dark on mid teal at 4.10:1
+   * while A's was white on deep rose. Two people, two inks, one of them
+   * failing. --who-s is a step darker in light to carry this one.
+   */
+  const ink = 'var(--accent-foreground)';
 
   return (
     <HeroAvatar

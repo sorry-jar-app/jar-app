@@ -11,7 +11,7 @@
  * up with JAR_BODY_PATH without any conversion.
  */
 
-import { COIN_FILLS } from '@/lib/constants';
+import { BRICK_FILLS } from '@/lib/constants';
 
 export type Brick = { x: number; y: number; w: number; h: number; alive: boolean; fill: string };
 export type Ball = { x: number; y: number; vx: number; vy: number; r: number };
@@ -137,7 +137,7 @@ function newBricks(): Brick[] {
         alive: true,
         // Diagonal stagger through the coin palette, so the wall reads as money
         // rather than as a grid.
-        fill: COIN_FILLS[(row + col) % COIN_FILLS.length],
+        fill: BRICK_FILLS[(row + col) % BRICK_FILLS.length],
       });
     }
   }

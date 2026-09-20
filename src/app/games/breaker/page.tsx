@@ -1,7 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent,
+} from 'react';
 import { useRouter } from 'next/navigation';
+import { Button, Card } from '@heroui/react';
 import { GameGate } from '@/components/games/GameGate';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { JAR_BODY_PATH } from '@/lib/constants';
@@ -27,9 +35,6 @@ import {
   type Game,
 } from '@/lib/games/breaker';
 
-const FIELD_PX = 216;
-const FIELD_PX_H = 270;
-
 /** How far a tilt has to go to push the paddle to the wall. */
 const TILT_SPAN = 110;
 /** Arrow-key travel, in viewBox units per second. */
@@ -39,7 +44,11 @@ const MANUAL_HOLD_MS = 1200;
 /** The beat between losing the ball and the next serve. */
 const PAUSE_MS = 700;
 
-
+/**
+ * A ball in the meter. Artwork, not a component — there is nothing in the kit
+ * that is one small mark repeated, and a Meter would print a figure.
+ */
+const DOT: CSSProperties = { width: 8, height: 8, borderRadius: 999, display: 'block' };
 
 const CLEARED_LINES = [
   'Nothing was earned. That was the deal.',
@@ -106,7 +115,7 @@ function BreakerPageScreen() {
   if (gameRef.current === null) gameRef.current = newGame(() => 0.5, allowance);
   const game = gameRef.current;
 
-  const fieldRef = useRef<HTMLDivElement | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
   const ballRef = useRef<SVGCircleElement | null>(null);
   const paddleRef = useRef<SVGRectElement | null>(null);
   const brickRefs = useRef<(SVGRectElement | null)[]>([]);
@@ -137,7 +146,10 @@ function BreakerPageScreen() {
       paintedCleared.current = g.cleared;
       for (let i = 0; i < g.bricks.length; i++) {
         const node = brickRefs.current[i];
-        if (node) node.style.opacity = g.bricks[i].alive ? '1' : '0';
+        // A broken brick goes to the spent colour rather than disappearing, so
+        // the wall keeps its shape and how much is left stays readable at a
+        // glance. Clearing the inline fill hands the brick back to its own.
+        if (node) node.style.fill = g.bricks[i].alive ? '' : 'var(--piece-dead)';
       }
     }
   }, []);
@@ -244,8 +256,18 @@ function BreakerPageScreen() {
     paint();
   }, [paint]);
 
+  /**
+   * Map a finger to a place on the wall.
+   *
+   * Measured off the live <svg>, every time. The board is no longer a fixed
+   * 216px — it grows to whatever is left between the meter and the footer, and
+   * it is letterboxed inside a full-width field, so the wrapper's box is wider
+   * than the board on every screen. Measuring the wrapper would have put the
+   * paddle consistently short of the finger, and by a different amount on each
+   * device. A stored constant would be worse.
+   */
   const aim = useCallback((clientX: number) => {
-    const box = fieldRef.current?.getBoundingClientRect();
+    const box = svgRef.current?.getBoundingClientRect();
     if (!box || box.width === 0) return;
     manualX.current = ((clientX - box.left) / box.width) * VIEW_W;
     manualAt.current = performance.now();
@@ -325,26 +347,23 @@ function BreakerPageScreen() {
             textAlign: 'center',
           }}
         >
-          <div className="sj-panel sj-panel--accent" style={{ maxWidth: 280 }}>
-            <span className="sj-title" style={{ display: 'block', fontSize: 20, marginBottom: 6 }}>
-              This one moves.
-            </span>
-            <span className="text-muted" style={{ fontSize: 13 }}>
-              Breaker is a coin bouncing at speed, and there is no honest way to play it still. Your
-              device asks for less motion, so it sits this one out.
-            </span>
+          <div style={{ width: '100%', maxWidth: 300 }}>
+            <Card>
+              <Card.Header>
+                <Card.Title>This one moves.</Card.Title>
+                <Card.Description>
+                  Breaker is a coin bouncing at speed, and there is no honest way to play it
+                  still. Your device asks for less motion, so it sits this one out.
+                </Card.Description>
+              </Card.Header>
+            </Card>
           </div>
         </div>
 
         <div className="sj-footer">
-          <button
-            type="button"
-            className="btn btn-primary btn-block"
-            style={{ height: 54, fontSize: 17, marginTop: 0 }}
-            onClick={() => router.push('/games')}
-          >
+          <Button size="lg" fullWidth onPress={() => router.push('/games')}>
             Back to games
-          </button>
+          </Button>
           <p className="text-muted" style={{ fontSize: 12, textAlign: 'center', margin: '10px 0 0' }}>
             Who&rsquo;s it? settles an argument without any of this.
           </p>
@@ -361,12 +380,14 @@ function BreakerPageScreen() {
         className="sj-body"
         style={{ padding: '4px 24px 14px', gap: 10, alignItems: 'center', textAlign: 'center' }}
       >
-        <p className="text-muted" style={{ fontSize: 13, margin: 0, maxWidth: 250 }}>
+        <p className="text-muted" style={{ fontSize: 13, margin: 0, maxWidth: 250, flex: 'none' }}>
           {allowance === 1 ? 'One ball' : `${allowance} balls`}. Drag the paddle, tilt the phone, or
             use the arrow keys.
         </p>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', maxWidth: FIELD_PX }}>
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', flex: 'none' }}
+        >
           <span className="sj-visually-hidden">
             {lives} of {allowance} {allowance === 1 ? 'ball' : 'balls'} left. {cleared} of{' '}
             {BRICK_COUNT} bricks down.
@@ -379,72 +400,67 @@ function BreakerPageScreen() {
               dots.map((i) => (
                 <span
                   key={i}
-                  className="sj-dot"
-                  style={{
-                    background: i < lives ? 'var(--color-accent-500)' : 'var(--color-neutral-300)',
-                  }}
+                  style={{ ...DOT, background: i < lives ? 'var(--who-a)' : 'var(--piece-dead)' }}
                 />
               ))
             ) : (
               <>
                 <span
-                  className="sj-dot"
-                  style={{
-                    background: lives > 0 ? 'var(--color-accent-500)' : 'var(--color-neutral-300)',
-                  }}
+                  style={{ ...DOT, background: lives > 0 ? 'var(--who-a)' : 'var(--piece-dead)' }}
                 />
                 <span style={{ fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>{lives}</span>
               </>
             )}
           </span>
-          <span aria-hidden="true" className="sj-bar-track" style={{ flex: 1 }}>
+          <span
+            aria-hidden="true"
+            style={{
+              flex: 1,
+              height: 6,
+              borderRadius: 999,
+              overflow: 'hidden',
+              background: 'var(--piece-dead)',
+            }}
+          >
             <span
               style={{
                 display: 'block',
                 height: '100%',
                 borderRadius: 999,
-                // Same ramp as the ball dots beside it. accent-500 and
-                // accent-2-500 are the you/them pair everywhere else in the
-                // app, so pairing them across a 10px gap reads as a split
-                // between two people when both halves are one player's.
-                background: 'var(--color-accent-300)',
+                // The same hue as the ball dots beside it, on purpose. --who-a
+                // and --who-s are the two people everywhere else in the app, so
+                // pairing them across a 10px gap would read as a split between
+                // two players when both halves are one player's.
+                background: 'var(--who-a)',
                 width: `${(cleared / BRICK_COUNT) * 100}%`,
               }}
             />
           </span>
         </div>
 
-        {/* flex: none, or the field is the thing that gets squashed on a short phone. */}
+        {/*
+          The board is the screen. .sj-field takes everything left between the
+          meter and the footer and sizes the svg off its own viewBox, which is
+          untouched — every constant in lib/games/breaker is in those units.
+        */}
         <div
-          ref={fieldRef}
-          style={{ flex: 'none', touchAction: 'none', userSelect: 'none' }}
+          className="sj-field sj-field--tall"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
-          <svg
-            viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-            style={{ width: FIELD_PX, height: FIELD_PX_H, display: 'block' }}
-            aria-hidden="true"
-          >
+          <svg ref={svgRef} viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} aria-hidden="true">
             <defs>
               <clipPath id="breaker-jar">
                 <path d={JAR_BODY_PATH} />
               </clipPath>
             </defs>
 
-            <rect x="66" y="2" width="68" height="19" rx="9.5" fill="var(--color-accent-700)" />
+            <rect x="66" y="2" width="68" height="19" rx="9.5" fill="var(--jar-lid)" />
 
             <g clipPath="url(#breaker-jar)">
-              <rect
-                x="28"
-                y="20"
-                width="144"
-                height="232"
-                fill="var(--color-accent-100)"
-                opacity="0.55"
-              />
+              <rect x="28" y="20" width="144" height="232" fill="var(--jar-glass)" />
 
               {game.bricks.map((brick, i) => (
                 <rect
@@ -458,7 +474,7 @@ function BreakerPageScreen() {
                   height={brick.h}
                   rx="3"
                   fill={brick.fill}
-                  style={{ transition: 'opacity .16s ease' }}
+                  style={{ transition: 'fill .16s ease' }}
                 />
               ))}
 
@@ -469,24 +485,25 @@ function BreakerPageScreen() {
                 width={PADDLE_W}
                 height={PADDLE_H}
                 rx={PADDLE_H / 2}
-                fill="var(--color-accent-700)"
+                fill="var(--who-a)"
               />
 
+              {/*
+                The one piece that must never be lost against anything else on
+                the field. The wall is drawn in the two people's hues, so the
+                ball takes the foreground instead — the strongest mark either
+                mode has, and the only one nothing else is using.
+              */}
               <circle
                 ref={ballRef}
                 cx={CENTRE_X}
                 cy={PADDLE_Y - BALL_R - 1}
                 r={BALL_R}
-                fill="var(--color-accent-600)"
+                fill="var(--foreground)"
               />
             </g>
 
-            <path
-              d={JAR_BODY_PATH}
-              fill="none"
-              stroke="color-mix(in srgb, var(--color-text) 26%, transparent)"
-              strokeWidth="3"
-            />
+            <path d={JAR_BODY_PATH} fill="none" stroke="var(--jar-rim)" strokeWidth="3" />
           </svg>
         </div>
 
@@ -495,6 +512,7 @@ function BreakerPageScreen() {
           aria-live="polite"
           aria-busy={phase === 'playing'}
           style={{
+            flex: 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -503,13 +521,13 @@ function BreakerPageScreen() {
           }}
         >
           {result && (
-            <div key={result.key} className="sj-panel sj-panel--accent">
-              <span className="sj-title" style={{ display: 'block', fontSize: 22 }}>
-                {result.title}
-              </span>
-              <span className="text-muted" style={{ fontSize: 13 }}>
-                {result.line}
-              </span>
+            <div key={result.key} style={{ width: '100%', maxWidth: 300 }}>
+              <Card>
+                <Card.Header>
+                  <Card.Title>{result.title}</Card.Title>
+                  <Card.Description>{result.line}</Card.Description>
+                </Card.Header>
+              </Card>
             </div>
           )}
         </div>
@@ -524,23 +542,18 @@ function BreakerPageScreen() {
           action from the player to explain it.
         */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-          <button
-            type="button"
-            className={phase === 'playing' ? 'btn btn-secondary btn-block' : 'btn btn-primary btn-block'}
-            style={{ height: 54, fontSize: 17, marginTop: 0 }}
-            onClick={phase === 'playing' ? stop : begin}
+          <Button
+            size="lg"
+            fullWidth
+            variant={phase === 'playing' ? 'secondary' : 'primary'}
+            onPress={phase === 'playing' ? stop : begin}
           >
-            {phase === 'playing' ? 'That\u2019s enough' : phase === 'done' ? 'Go again' : 'Serve the coin'}
-          </button>
+            {phase === 'playing' ? 'That’s enough' : phase === 'done' ? 'Go again' : 'Serve the coin'}
+          </Button>
           {phase === 'done' && (
-            <button
-              type="button"
-              className="btn btn-secondary btn-block"
-              style={{ height: 46, marginTop: 0 }}
-              onClick={ownUp}
-            >
+            <Button variant="secondary" size="lg" fullWidth onPress={ownUp}>
               Own up and log one
-            </button>
+            </Button>
           )}
         </div>
         <p className="text-muted" style={{ fontSize: 12, textAlign: 'center', margin: '10px 0 0' }}>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button, Card } from '@heroui/react';
 import { Avatar } from '@/components/Avatar';
 import { Jar } from '@/components/Jar';
 import { GameGate } from '@/components/games/GameGate';
@@ -13,10 +14,30 @@ import { useTilt } from '@/lib/useTilt';
 import { COIN_FLOOR } from '@/lib/constants';
 import type { Person } from '@/lib/types';
 
-
-
 /** How long the coins get to throw themselves about before the reveal. */
 const CHURN_MS = 1400;
+
+/**
+ * The jar's own units — the viewBox inside <Jar>, not pixels.
+ *
+ * <Jar> takes width and height as numbers and writes them onto the svg as an
+ * inline style, so the stylesheet cannot size it: the field has to be measured
+ * and the numbers handed over. These two are only the ratio that measurement
+ * fits into, and they must track the component's viewBox exactly or the jar
+ * letterboxes inside its own box.
+ */
+const JAR_VIEW_W = 200;
+const JAR_VIEW_H = 250;
+
+/**
+ * Room kept for the result, so the jar is not resized by its own answer.
+ *
+ * The field takes whatever is left over; if that "left over" changed the
+ * moment a result landed, the jar would jump a hundred pixels at exactly the
+ * moment you are looking at it. Reserving the panel's height up front costs a
+ * little glass and buys a still reveal.
+ */
+const RESULT_MIN_H = 88;
 
 const LINES = [
   'The coins were quite clear.',
@@ -51,6 +72,42 @@ function WhosItPageScreen() {
   const busy = useRef(false);
 
   const { gravity, requestAccess: requestTilt, nudge } = useTilt();
+
+  /**
+   * The field is a different size on every screen, so the jar is measured, not
+   * declared. Largest 200×250 box that fits, which is what object-fit: contain
+   * would do if an svg with an inline width could be talked out of it.
+   *
+   * This converges rather than chases itself: .sj-field is `flex: 1 1 auto`
+   * inside a column whose height is fixed, so its height settles at "whatever
+   * the instruction line, the result panel and the gaps leave", a figure the
+   * jar's own size drops out of. The epsilon stops the observer re-firing on a
+   * sub-pixel, and .sj-field > svg { max-height: 100% } is the backstop if a
+   * measurement is ever stale.
+   */
+  const fieldRef = useRef<HTMLDivElement | null>(null);
+  const [jarBox, setJarBox] = useState({ width: JAR_VIEW_W, height: JAR_VIEW_H });
+
+  useEffect(() => {
+    const field = fieldRef.current;
+    if (!field) return;
+
+    const fit = () => {
+      const { width, height } = field.getBoundingClientRect();
+      if (width <= 0 || height <= 0) return;
+      const scale = Math.min(width / JAR_VIEW_W, height / JAR_VIEW_H);
+      setJarBox((prev) =>
+        Math.abs(prev.height - JAR_VIEW_H * scale) < 0.5
+          ? prev
+          : { width: JAR_VIEW_W * scale, height: JAR_VIEW_H * scale },
+      );
+    };
+
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(field);
+    return () => observer.disconnect();
+  }, []);
 
   const decide = useCallback(() => {
     if (busy.current) return;
@@ -120,8 +177,8 @@ function WhosItPageScreen() {
           Nobody is taking the bins out. Let the jar decide.
         </p>
 
-        {/* flex: none, or the jar is the thing that gets squashed on a short phone. */}
-        <div style={{ flex: 'none' }}>
+        {/* The board is the screen. 200×250 is taller than wide, so --tall. */}
+        <div ref={fieldRef} className="sj-field sj-field--tall">
           {/*
             wakeKey, never alwaysOn. Left always on, nineteen coins slide under
             every hand tremor for as long as the screen is open — it outruns
@@ -129,8 +186,8 @@ function WhosItPageScreen() {
             nudge rouses the pile only when "down" has actually moved.
           */}
           <Jar
-            width={220}
-            height={275}
+            width={jarBox.width}
+            height={jarBox.height}
             coins={Math.max(COIN_FLOOR, state.coins)}
             tumbleKey={tumbleKey}
             gravity={gravity}
@@ -146,62 +203,64 @@ function WhosItPageScreen() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            minHeight: 78,
+            minHeight: RESULT_MIN_H,
             width: '100%',
           }}
         >
           {outcome && (
-            <div
-              key={outcome.round}
-              className="sj-panel sj-panel--accent"
-              style={{ display: 'flex', alignItems: 'center', gap: 12 }}
-            >
-              <Avatar person={outcome.who} initial={initialOf(name)} size={34} />
-              <span style={{ textAlign: 'left' }}>
-                <span className="sj-title" style={{ display: 'block', fontSize: 22 }}>
-                  {name}
-                </span>
-                <span className="text-muted" style={{ fontSize: 13 }}>
-                  {outcome.line}
-                </span>
-              </span>
-            </div>
+            <Card key={outcome.round}>
+              <Card.Content>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Avatar person={outcome.who} initial={initialOf(name)} size={34} />
+                  <span style={{ textAlign: 'left' }}>
+                    <span className="sj-title" style={{ display: 'block', fontSize: 22 }}>
+                      {name}
+                    </span>
+                    <span className="text-muted" style={{ fontSize: 13 }}>
+                      {outcome.line}
+                    </span>
+                  </span>
+                </div>
+              </Card.Content>
+            </Card>
           )}
         </div>
       </div>
 
       <div className="sj-footer">
-        {outcome ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-            <button
-              type="button"
-              className="btn btn-primary btn-block"
-              style={{ height: 54, fontSize: 17, marginTop: 0 }}
-              onClick={fineThem}
-            >
+        {/*
+          The shake button is written once, outside the branch, on purpose. A
+          round ending swaps one button for two, and had this been the second
+          arm of a ternary React would have torn the old node down — taking the
+          focus of anyone who got here by keyboard with it, at the exact moment
+          there is something new to read. Held at a fixed position in the child
+          list it keeps its DOM node, its focus, and its job: shake again.
+        */}
+        <div className="sj-stack">
+          {outcome && (
+            <Button size="lg" fullWidth onPress={fineThem}>
               Log a fine on {name}
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary btn-block"
-              style={{ height: 46, marginTop: 0 }}
-              onClick={shakeIt}
-            >
-              Go again
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            className="btn btn-primary btn-block"
-            style={{ height: 54, fontSize: 17, marginTop: 0 }}
-            aria-busy={churning}
-            disabled={churning}
-            onClick={shakeIt}
+            </Button>
+          )}
+          {/*
+            aria-disabled, never disabled: a real disabled attribute drops the
+            button out of the tab order mid-press and the focus goes to the
+            document. Neither attribute survives HeroUI's Button on its own, so
+            the render function puts them back. A press that lands anyway is
+            caught by the busy guard in decide().
+          */}
+          <Button
+            variant={outcome ? 'secondary' : 'primary'}
+            size="lg"
+            fullWidth
+            render={(props) => (
+              <button {...props} aria-busy={churning} aria-disabled={churning || undefined} />
+            )}
+            onPress={shakeIt}
           >
-            {churning ? 'Shaking…' : 'Shake it'}
-          </button>
-        )}
+            {outcome ? 'Go again' : churning ? 'Shaking…' : 'Shake it'}
+          </Button>
+        </div>
         <p className="text-muted" style={{ fontSize: 12, textAlign: 'center', margin: '10px 0 0' }}>
           Deciding is free. The fine is still yours to log.
         </p>

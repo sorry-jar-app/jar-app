@@ -15,6 +15,7 @@
  * receipt. A column number needs no flipping, which is most of why this works.
  */
 
+import { Button, Card, Radio, RadioGroup } from '@heroui/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Avatar } from '@/components/Avatar';
@@ -47,9 +48,15 @@ const THEM: Person = 'S';
 
 const MACHINE = 'The machine';
 
-/** Board geometry. GAP is read back when measuring how far a disc falls. */
-const GAP = 4;
-const BOARD_MAX = 318;
+/**
+ * Board geometry in CSS pixels: the gap between two holes, and the frame
+ * around them. Neither sets the board's SIZE any more — that comes off the
+ * screen, see .sj-field below — and the falling disc measures its own column
+ * rather than reading these back, because the pitch is different on every
+ * phone now.
+ */
+const GAP = 5;
+const PAD = 8;
 
 const COLUMNS = Array.from({ length: COLS }, (_, i) => i);
 /** Row 0 is the floor; the column stacks column-reverse, so this order is it. */
@@ -252,6 +259,8 @@ function FourPageScreen() {
   const myTurn = turn === ME;
   const winCells = new Set(win ? win.cells.map(([c, r]) => c * ROWS + r) : []);
   const waiting = !over && !theyLeft && (pending || (kind !== 'local' && !myTurn));
+  /** Nothing to start over from: no round yet, or a board nobody has touched. */
+  const cannotRestart = pending || played === 0;
 
   // The machine is handed the position after the other side moves and answers
   // through subscribe(), exactly as a person would.
@@ -281,11 +290,17 @@ function FourPageScreen() {
     el.style.opacity = '';
     if (reduced) return;
 
-    const size = el.getBoundingClientRect().height;
-    if (!size) return;
+    const hole = el.getBoundingClientRect();
+    // The pitch — one hole plus one gap — comes off the live column, never off
+    // a constant: the board is a different size on every screen now, and a
+    // disc animated over a remembered pitch falls the wrong distance.
+    const column = el.closest('[data-column]')?.getBoundingClientRect();
+    if (!hole.height || !column) return;
+    const pitch = (column.height - hole.height) / (ROWS - 1);
+    if (!Number.isFinite(pitch) || pitch <= 0) return;
     // It falls the length of the column it is actually landing in, so a disc on
     // the floor takes longer to get there than one on the top row.
-    const fall = (ROWS - lastDrop.row) * (size + GAP);
+    const fall = (ROWS - lastDrop.row) * pitch;
 
     dropAnim.current = el.animate(
       [
@@ -396,40 +411,46 @@ function FourPageScreen() {
         className="sj-body"
         style={{ padding: '4px 24px 14px', gap: 10, alignItems: 'center', textAlign: 'center' }}
       >
-        <div
-          style={{ display: 'flex', flexWrap: 'wrap', gap: 7, justifyContent: 'center' }}
-          role="group"
+        {/* Three opponents, one choice, so it is a radio group — the same
+            reading History settled on. A single-select ToggleButtonGroup calls
+            itself a radiogroup and is a toolbar underneath: three tab stops,
+            and an arrow key that moves focus without moving the selection.
+            Centred, because the group wraps to a second line on a narrow
+            phone and a wrapped row should still sit under the first. */}
+        <RadioGroup
           aria-label="Who you are playing"
+          orientation="horizontal"
+          style={{ width: '100%', justifyContent: 'center' }}
+          value={kind}
+          onChange={(next) => {
+            if (next === 'remote' || next === 'local' || next === 'ai') pick(next);
+          }}
         >
-          <button
-            type="button"
-            className="sj-pill sj-pill--filter"
-            aria-pressed={kind === 'remote'}
-            disabled={!remoteReady}
-            onClick={() => pick('remote')}
-            // .sj-pill has no disabled state of its own; these are the two
-            // values .btn:disabled already uses, rather than a new pair.
-            style={remoteReady ? undefined : { opacity: 0.45, cursor: 'not-allowed' }}
-          >
-            Other phone
-          </button>
-          <button
-            type="button"
-            className="sj-pill sj-pill--filter"
-            aria-pressed={kind === 'local'}
-            onClick={() => pick('local')}
-          >
-            This phone
-          </button>
-          <button
-            type="button"
-            className="sj-pill sj-pill--filter"
-            aria-pressed={kind === 'ai'}
-            onClick={() => pick('ai')}
-          >
-            The machine
-          </button>
-        </div>
+          <Radio value="remote" isDisabled={!remoteReady}>
+            <Radio.Content>
+              <Radio.Control>
+                <Radio.Indicator />
+              </Radio.Control>
+              Other phone
+            </Radio.Content>
+          </Radio>
+          <Radio value="local">
+            <Radio.Content>
+              <Radio.Control>
+                <Radio.Indicator />
+              </Radio.Control>
+              This phone
+            </Radio.Content>
+          </Radio>
+          <Radio value="ai">
+            <Radio.Content>
+              <Radio.Control>
+                <Radio.Indicator />
+              </Radio.Control>
+              The machine
+            </Radio.Content>
+          </Radio>
+        </RadioGroup>
 
         {!remoteReady && (
           <p className="text-muted" style={{ fontSize: 13, margin: 0, maxWidth: 270 }}>
@@ -446,20 +467,40 @@ function FourPageScreen() {
           {turnLine}
         </p>
 
-        {/* flex: none, or the board is what gets squashed on a short phone. */}
-        <div style={{ flex: 'none', width: '100%', display: 'flex', justifyContent: 'center' }}>
+        {/* The board is the screen: .sj-field takes every pixel between the
+            turn line and the result, and the board fills it.
+
+            container-type is this game's one addition to the field, and it is
+            here rather than in layout.css because only a board made of divs
+            needs it. The other four draw an SVG, which carries its own ratio
+            and is sized by the rules already in the stylesheet; a div has none,
+            so this board reads the field's own height — 100cqh — and takes the
+            narrower of "as wide as the field" and "as wide as that height
+            allows". Holes stay round either way, which is the thing that goes
+            wrong if you let max-height do the work instead. */}
+        <div className="sj-field sj-field--wide" style={{ containerType: 'size' }}>
           <div
             role="group"
             aria-label="Four in a row board"
             aria-busy={waiting}
             style={{
               width: '100%',
-              maxWidth: BOARD_MAX,
+              // COLS holes across and ROWS down is COLS/ROWS wide for a given
+              // height; the 6px is the frame and the odd gap out. Written as a
+              // max-width rather than a clamp so a browser with no container
+              // units drops this one declaration and still gets a full-width
+              // board instead of none.
+              maxWidth: `max(180px, calc((100cqh - 6px) * ${COLS} / ${ROWS}))`,
               display: 'grid',
               gridTemplateColumns: `repeat(${COLS}, 1fr)`,
               gap: GAP,
-              padding: 8,
-              background: 'var(--color-surface)',
+              padding: PAD,
+              background: 'var(--surface)',
+              border: '1px solid var(--separator)',
+              // The same glass the cards are made of, off the theme's own
+              // blur, so the board belongs to the screen it sits on.
+              backdropFilter: 'blur(var(--glass-blur, 20px))',
+              WebkitBackdropFilter: 'blur(var(--glass-blur, 20px))',
               borderRadius: 24,
               overflow: 'hidden',
             }}
@@ -485,6 +526,9 @@ function FourPageScreen() {
                 <button
                   key={col}
                   type="button"
+                  // onClick, not onPress: this is a plain button drawing a
+                  // column of holes, not a kit component.
+                  data-column={col}
                   aria-label={`Column ${col + 1}: ${contents}`}
                   // aria-disabled, not disabled: the browser blurs a focused
                   // element the moment it is disabled, and every drop shuts all
@@ -518,7 +562,10 @@ function FourPageScreen() {
                           flex: 'none',
                           aspectRatio: '1',
                           borderRadius: '50%',
-                          background: 'var(--color-bg)',
+                          // An empty hole is the play field's own wash, which
+                          // reads as a well cut into the frame in both modes:
+                          // darker than the surface in light, lighter in dark.
+                          background: 'var(--field-wash)',
                         }}
                       >
                         {cell && (
@@ -528,12 +575,12 @@ function FourPageScreen() {
                               position: 'absolute',
                               inset: 0,
                               borderRadius: '50%',
-                              background:
-                                cell === ME
-                                  ? 'var(--color-accent-500)'
-                                  : 'var(--color-accent-2-500)',
+                              // The two people, in the two colours they
+                              // carry everywhere else in the app. No word ever
+                              // sits on a disc, so these are bare fills.
+                              background: cell === ME ? 'var(--who-a)' : 'var(--who-s)',
                               boxShadow: winCells.has(col * ROWS + row)
-                                ? 'inset 0 0 0 3px var(--color-bg)'
+                                ? 'inset 0 0 0 3px var(--background)'
                                 : undefined,
                               opacity: dim ? 0.38 : isNew && !reduced ? 0 : undefined,
                               transition: 'opacity .25s ease',
@@ -561,32 +608,30 @@ function FourPageScreen() {
           }}
         >
           {over ? (
-            <div
-              key={`${roundNo}-${played}`}
-              className="sj-panel sj-panel--accent"
-              style={{ display: 'flex', alignItems: 'center', gap: 12 }}
-            >
-              {winner && !(kind === 'ai' && winner === THEM) && (
-                <Avatar person={winner} initial={initialOf(nameOf(winner))} size={34} />
-              )}
-              <span style={{ textAlign: 'left' }}>
-                <span className="sj-title" style={{ display: 'block', fontSize: 22 }}>
-                  {winner ? `${nameOf(winner)} wins` : 'Nobody wins'}
-                </span>
-                <span className="text-muted" style={{ fontSize: 13 }}>
-                  {resultLine}
-                </span>
-              </span>
-            </div>
+            <Card key={`${roundNo}-${played}`} style={{ width: '100%' }}>
+              <Card.Content
+                style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left' }}
+              >
+                {winner && !(kind === 'ai' && winner === THEM) && (
+                  <Avatar person={winner} initial={initialOf(nameOf(winner))} size={34} />
+                )}
+                <div>
+                  <Card.Title>
+                    {winner ? `${nameOf(winner)} wins` : 'Nobody wins'}
+                  </Card.Title>
+                  <Card.Description>{resultLine}</Card.Description>
+                </div>
+              </Card.Content>
+            </Card>
           ) : (
             theyLeft && (
-              <div
-                key={`left-${roundNo}`}
-                className="sj-panel sj-panel--sage"
-                style={{ fontSize: 13 }}
-              >
-                {themName} has left the game. The machine has nowhere to be.
-              </div>
+              <Card key={`left-${roundNo}`} style={{ width: '100%' }}>
+                <Card.Content style={{ textAlign: 'left' }}>
+                  <Card.Description>
+                    {themName} has left the game. The machine has nowhere to be.
+                  </Card.Description>
+                </Card.Content>
+              </Card>
             )
           )}
         </div>
@@ -594,45 +639,43 @@ function FourPageScreen() {
 
       <div className="sj-footer">
         {theyLeft && !over ? (
-          <button
-            type="button"
-            className="btn btn-primary btn-block"
-            style={{ height: 54, fontSize: 17, marginTop: 0 }}
-            onClick={carryOn}
-          >
+          <Button fullWidth size="lg" onPress={carryOn}>
             Carry on against the machine
-          </button>
+          </Button>
         ) : over ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
             {fineable && loser && (
-              <button
-                type="button"
-                className="btn btn-primary btn-block"
-                style={{ height: 54, fontSize: 17, marginTop: 0 }}
-                onClick={fineTheLoser}
-              >
+              <Button fullWidth size="lg" onPress={fineTheLoser}>
                 Log a fine on {nameOf(loser)}
-              </button>
+              </Button>
             )}
-            <button
-              type="button"
-              className={fineable ? 'btn btn-secondary btn-block' : 'btn btn-primary btn-block'}
-              style={{ height: fineable ? 46 : 54, fontSize: fineable ? undefined : 17, marginTop: 0 }}
-              onClick={goAgain}
+            <Button
+              fullWidth
+              size="lg"
+              variant={fineable ? 'secondary' : 'primary'}
+              onPress={goAgain}
             >
               Go again
-            </button>
+            </Button>
           </div>
         ) : (
-          <button
-            type="button"
-            className="btn btn-secondary btn-block"
-            style={{ height: 46, marginTop: 0 }}
-            disabled={pending || played === 0}
-            onClick={goAgain}
+          <Button
+            fullWidth
+            size="lg"
+            variant="secondary"
+            // aria-disabled, not isDisabled — and through render(), because the
+            // kit's Button overwrites an aria-disabled handed to it as a prop.
+            // Pressing this is what empties the board, which is the condition
+            // that shuts it: a real `disabled` would blur the control the
+            // player has just pressed and drop focus to the top of the screen.
+            // The handler refuses on the same condition.
+            render={(props) => <button {...props} aria-disabled={cannotRestart || undefined} />}
+            onPress={() => {
+              if (!cannotRestart) goAgain();
+            }}
           >
             Start over
-          </button>
+          </Button>
         )}
         <p className="text-muted" style={{ fontSize: 12, textAlign: 'center', margin: '10px 0 0' }}>
           Playing is free. The fine is still yours to log.
