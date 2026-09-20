@@ -103,22 +103,17 @@ export default function NotificationsPage() {
           Tell me when
         </h6>
 
+        {/* Real switches. Each row is a <label role="switch"> now rather than a
+            <button aria-pressed> with a decorative track beside it, so the
+            name, the note and the state are one control. */}
         {prefRows.map((row) => (
-          <button
+          <Toggle
             key={row.key}
-            type="button"
-            className="sj-toggle-row"
-            aria-pressed={notif[row.key]}
-            onClick={() => dispatch({ type: 'notif/toggle', key: row.key })}
-          >
-            <span style={{ flex: 1 }}>
-              <span style={{ fontSize: '15px', display: 'block' }}>{row.name}</span>
-              <span className="text-muted" style={{ fontSize: '12px' }}>
-                {row.note}
-              </span>
-            </span>
-            <Toggle on={notif[row.key]} />
-          </button>
+            on={notif[row.key]}
+            onChange={() => dispatch({ type: 'notif/toggle', key: row.key })}
+            label={row.name}
+            description={row.note}
+          />
         ))}
 
         <p className="text-muted" style={{ fontSize: '12px', margin: '6px 2px 0' }}>

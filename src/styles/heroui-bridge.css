@@ -80,3 +80,58 @@
   --font-sans: var(--font-body);
   --font-display: var(--font-heading);
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Reconciliation.
+
+   HeroUI's component CSS is in @layer components; this app's is unlayered, and
+   unlayered beats every layer at any specificity. So the app wins on every
+   property it DECLARES — and only on those. Each rule below closes a property
+   the app never had an opinion about, and so inherited from HeroUI by default
+   the moment a screen started using its components.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* .field > label sets display, size, margin and colour but never weight, so
+   HeroUI's .label { font-medium } leaked 500 into every converted field. The
+   app's labels have always been 400. */
+.field > label,
+.field .label {
+  font-weight: 400;
+}
+
+/* .textfield is a flex column with a 4px gap. Margins do not collapse in flex,
+   so the label's own 5px margin-bottom stacked on top of it and every
+   converted field sat 9px loose next to the 5px of every field that had not
+   been converted yet. Let the margin do the work, as it always did. */
+.textfield {
+  gap: 0;
+}
+
+/* HeroUI presses its buttons in by 3%. There is no press-scale anywhere in
+   Organic — `grep -rn "scale(" src/styles/*.css` finds nothing — and the
+   reduced-motion block in app.css only clamps animation and transition
+   duration, so it would not suppress a transform. Six controls on the jar
+   screen alone had picked it up. */
+.btn:active,
+.btn[data-pressed='true'] {
+  transform: none;
+}
+
+/* organic.css:166 collapses the input inside the app's legacy .radio markup to
+   nothing. React Aria renders a real input inside its own VisuallyHidden span
+   and deliberately keeps it 1px, because that input is the actual keyboard
+   focus target and zero-size targets break scroll-into-view and some assistive
+   tech. Give it its pixel back. */
+.radio input {
+  width: 1px;
+  height: 1px;
+}
+
+/* The app's error language is accent-700 text, everywhere. HeroUI marks an
+   invalid field with a danger-red hairline, and nothing else in this app is
+   red. The message and its role="alert" already carry the failure; the outline
+   only adds a colour the palette does not contain. */
+.input[data-invalid='true'],
+.textfield [data-invalid='true'] {
+  outline: none;
+}

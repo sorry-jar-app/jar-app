@@ -1,10 +1,45 @@
 'use client';
 
+import { Label, Meter } from '@heroui/react';
+import type { CSSProperties } from 'react';
 import { DAYS } from '@/lib/constants';
 import { veil } from '@/lib/money';
 import { sumFines, useStore } from '@/lib/store';
 import { isTimestamp, WEEKDAYS } from '@/lib/when';
 import type { Fine } from '@/lib/types';
+
+/*
+ * The rule bar.
+ *
+ * A Meter is what this row has always been: a quantity in a known range, with
+ * its name on the left and its figure on the right. HeroUI lays those three
+ * parts out on the same grid the row already used — label, output, track
+ * underneath — so the markup gets shorter and the bar gains a role, a name
+ * and a value it did not have.
+ *
+ * The value is the PERCENTAGE, not the money. aria-valuenow is readable
+ * whatever the screen says, and Mystery jar would leak straight through it;
+ * the proportion is what the bar shows anyway, sealed or not. The figure
+ * rides on valueLabel, which is what both the output and aria-valuetext
+ * read, so the seal holds in the accessibility tree as well as on screen.
+ *
+ * .meter__track is h-2 on bg-default, which the bridge points at
+ * --color-neutral-200: the same 8px and the same grey as .sj-bar-track. Only
+ * the corners differ, and rounded-sm sits behind a two-class selector that
+ * app.css cannot outrank, so the radius is inline.
+ *
+ * THE CONTRAST RULE: --meter-fill defaults to --accent, which the bridge pins
+ * to the 600 step because text sits on it. A chart bar carries no text, so it
+ * takes the 500 step, as the coins and the toggle tracks do.
+ */
+const RULE_BAR = {
+  gap: 5,
+  marginBottom: 11,
+  '--meter-fill': 'var(--color-accent-500)',
+} as CSSProperties;
+
+/* .meter's own label and output are text-sm/medium; the panel's are 13/regular. */
+const RULE_TEXT: CSSProperties = { fontSize: 13, fontWeight: 400 };
 
 /**
  * Stats — four panels over the same fines everyone else reads.
@@ -153,24 +188,18 @@ export default function StatsPage() {
             Most expensive rule
           </h6>
           {ruleTotals.map((rule) => (
-            <div
+            <Meter
               key={rule.name}
-              style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 11 }}
+              value={Math.round((rule.amt / maxRule) * 100)}
+              valueLabel={veil(rule.amt, sealed)}
+              style={RULE_BAR}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                <span>{rule.name}</span>
-                <span>{veil(rule.amt, sealed)}</span>
-              </div>
-              <div className="sj-bar-track">
-                <div
-                  style={{
-                    height: '100%',
-                    background: 'var(--color-accent-500)',
-                    width: `${Math.round((rule.amt / maxRule) * 100)}%`,
-                  }}
-                />
-              </div>
-            </div>
+              <Label style={RULE_TEXT}>{rule.name}</Label>
+              <Meter.Output style={RULE_TEXT} />
+              <Meter.Track style={{ borderRadius: 999 }}>
+                <Meter.Fill style={{ borderRadius: 999 }} />
+              </Meter.Track>
+            </Meter>
           ))}
         </section>
 

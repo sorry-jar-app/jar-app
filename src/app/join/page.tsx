@@ -10,10 +10,15 @@
  * pretty URL on the web. Both builds get a page that works.
  */
 
+import { Button } from '@heroui/react';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Jar } from '@/components/Jar';
 import { useStore } from '@/lib/store';
+
+/* HeroUI's .button is h-10 / h-9 above 768px, and .btn sets no height of its
+   own, so a button the design sizes by its padding needs height:auto back. */
+const GHOST: React.CSSProperties = { marginTop: 6, height: 'auto' };
 
 function JoinFlow() {
   const router = useRouter();
@@ -60,28 +65,34 @@ function JoinFlow() {
           <p className="text-muted" style={{ fontSize: 15, marginTop: 18, maxWidth: 260 }}>
             That link is missing its code.
           </p>
-          <button
-            type="button"
+          <Button
             className="btn btn-ghost"
-            style={{ marginTop: 6 }}
-            onClick={() => router.replace('/pair')}
+            variant="ghost"
+            style={GHOST}
+            onPress={() => router.replace('/pair')}
           >
             Enter it by hand
-          </button>
+          </Button>
         </>
       ) : error ? (
         <>
-          <p style={{ fontSize: 15, marginTop: 18, maxWidth: 260, color: 'var(--color-accent-700)' }}>
+          {/* Kept as a live region rather than moved into a HeroUI Alert: the
+              error arrives with focus nowhere near it, and React Aria strips
+              role from its own message slots. */}
+          <p
+            role="alert"
+            style={{ fontSize: 15, marginTop: 18, maxWidth: 260, color: 'var(--color-accent-700)' }}
+          >
             {error}
           </p>
-          <button
-            type="button"
+          <Button
             className="btn btn-ghost"
-            style={{ marginTop: 6 }}
-            onClick={() => router.replace('/pair')}
+            variant="ghost"
+            style={GHOST}
+            onPress={() => router.replace('/pair')}
           >
             Try another code
-          </button>
+          </Button>
         </>
       ) : (
         <p className="text-muted" style={{ fontSize: 15, marginTop: 18 }}>

@@ -8,6 +8,7 @@
  * ground.
  */
 
+import { Button } from '@heroui/react';
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Jar } from '@/components/Jar';
@@ -73,17 +74,22 @@ export default function LandedPage() {
       </div>
 
       <div style={{ display: 'flex', gap: 10, width: '100%', marginTop: 26 }}>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, height: 50 }} onClick={undo}>
-          Undo
-        </button>
-        <button
-          type="button"
-          className="btn btn-primary"
+        <Button
+          className="btn btn-secondary"
+          variant="secondary"
           style={{ flex: 1, height: 50 }}
-          onClick={() => router.push('/jar')}
+          onPress={undo}
+        >
+          Undo
+        </Button>
+        <Button
+          className="btn btn-primary"
+          variant="primary"
+          style={{ flex: 1, height: 50 }}
+          onPress={() => router.push('/jar')}
         >
           Done
-        </button>
+        </Button>
       </div>
     </div>
   );

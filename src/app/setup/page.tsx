@@ -9,9 +9,17 @@
  * and Pairing, in the Pairing screen's left-aligned frame.
  *
  * Blank is allowed and falls back to "You" and "Them", which is what the
- * placeholders show, so nobody is trapped behind a form on the way in.
+ * placeholders show, so nobody is trapped behind a form on the way in. Neither
+ * field is isRequired for the same reason — the CTA never gates.
+ *
+ * On HeroUI: TextField wires the Label to the Input itself, so the htmlFor/id
+ * pair is gone and the ids only stay because external selectors may want them.
+ * `.field` rides along on the TextField so `.field > label` still styles the
+ * label; gap 0 because HeroUI's .textfield adds its own 4px on top of the
+ * label's 5px margin.
  */
 
+import { Button, Input, Label, TextField } from '@heroui/react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { NAME_FALLBACK_ME, NAME_FALLBACK_PARTNER } from '@/lib/constants';
@@ -42,46 +50,47 @@ export default function SetupPage() {
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 11, marginTop: 26 }}>
-        <div className="field">
-          <label htmlFor="setup-me">You</label>
-          <input
-            id="setup-me"
-            className="input"
+        {/* Two placements that are not interchangeable: `id` goes on the
+            TextField, which is what the generated <label for> points at, and
+            `autoFocus` goes on the Input, where the TextField swallows it. */}
+        <TextField className="field" id="setup-me" style={{ gap: 0 }} value={me} onChange={setMe}>
+          <Label>You</Label>
+          <Input
             style={{ height: 44 }}
-            value={me}
             placeholder={NAME_FALLBACK_ME}
             autoComplete="given-name"
             autoFocus
-            onChange={(e) => setMe(e.target.value)}
           />
-        </div>
-        <div className="field">
-          <label htmlFor="setup-partner">Them</label>
-          <input
-            id="setup-partner"
-            className="input"
+        </TextField>
+        <TextField
+          className="field"
+          id="setup-partner"
+          style={{ gap: 0 }}
+          value={partner}
+          onChange={setPartner}
+        >
+          <Label>Them</Label>
+          <Input
             style={{ height: 44 }}
-            value={partner}
             placeholder={NAME_FALLBACK_PARTNER}
             autoComplete="off"
-            onChange={(e) => setPartner(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') go();
             }}
           />
-        </div>
+        </TextField>
       </div>
 
       <div style={{ flex: 1 }} />
 
-      <button
-        type="button"
+      <Button
         className="btn btn-primary btn-block"
+        variant="primary"
         style={{ height: 54, fontSize: 17, marginTop: 0 }}
-        onClick={go}
+        onPress={go}
       >
         Next
-      </button>
+      </Button>
     </div>
   );
 }

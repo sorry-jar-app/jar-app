@@ -12,10 +12,16 @@
  *
  * This is also the gate: anyone who has already been through pairing — either
  * by finishing it or by skipping it — goes straight to the jar instead.
+ *
+ * Both buttons are HeroUI's in the app's .btn clothes. The second one is a
+ * ghost, not a secondary: HeroUI's secondary variant paints a neutral fill,
+ * and this button is a hairline border on the page. Ghost is the transparent
+ * one; .btn-secondary supplies the border.
  */
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@heroui/react';
 import { Jar } from '@/components/Jar';
 import { useStore } from '@/lib/store';
 
@@ -55,20 +61,24 @@ export default function WelcomePage() {
       <div
         style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', marginTop: 22 }}
       >
-        <button
+        <Button
           className="btn btn-primary btn-block"
+          variant="primary"
+          fullWidth
           style={{ height: 54, fontSize: 17, marginTop: 0 }}
-          onClick={startJar}
+          onPress={startJar}
         >
           Start a jar
-        </button>
-        <button
+        </Button>
+        <Button
           className="btn btn-secondary btn-block"
+          variant="ghost"
+          fullWidth
           style={{ height: 50, fontSize: 15, marginTop: 0 }}
-          onClick={joinJar}
+          onPress={joinJar}
         >
           I have an invite code
-        </button>
+        </Button>
       </div>
     </div>
   );

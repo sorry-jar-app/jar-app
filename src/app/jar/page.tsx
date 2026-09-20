@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button, Meter } from '@heroui/react';
 import { Jar } from '@/components/Jar';
 import { BellIcon, EyeIcon, GearIcon, PlusIcon } from '@/components/Icons';
 import { JAR_STARTED } from '@/lib/constants';
@@ -22,6 +23,15 @@ import { useTilt } from '@/lib/useTilt';
  * logged, no total changes. Tapping the jar does the same thing, which gives
  * it a discoverable, permission-free path on every platform and doubles as the
  * user gesture iOS insists on before it will hand over motion events.
+ *
+ * The controls are HeroUI's, wearing the app's .btn classes. Those classes
+ * load after HeroUI's stylesheet and win at equal specificity, so the geometry
+ * is the one Organic specifies and HeroUI supplies the behaviour: onPress,
+ * which cancels cleanly when a press turns into a scroll. Two places need an
+ * inline override because HeroUI outranks a single class there — .button sizes
+ * its own svg children, and it pins a height the ghost row does not want.
+ *
+ * The jar itself stays a plain button. It is the artwork, not a control.
  */
 export default function HomePage() {
   const router = useRouter();
@@ -56,22 +66,26 @@ export default function HomePage() {
       <div className="sj-header sj-header--home">
         <span className="sj-title">Sorry Jar</span>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button
-            type="button"
+          <Button
             className="btn btn-icon btn-secondary"
+            variant="ghost"
+            isIconOnly
             aria-label="Notifications"
-            onClick={() => router.push('/notifications')}
+            onPress={() => router.push('/notifications')}
           >
-            <BellIcon />
-          </button>
-          <button
-            type="button"
+            {/* .button sizes its own svg children at 20px, and 16px above 640.
+                The glyph is 17px here, as it is everywhere else in the app. */}
+            <BellIcon style={{ width: 17, height: 17, margin: 0 }} />
+          </Button>
+          <Button
             className="btn btn-icon btn-secondary"
+            variant="ghost"
+            isIconOnly
             aria-label="Settings"
-            onClick={() => router.push('/settings')}
+            onPress={() => router.push('/settings')}
           >
-            <GearIcon />
-          </button>
+            <GearIcon style={{ width: 17, height: 17, margin: 0 }} />
+          </Button>
         </div>
       </div>
 
@@ -120,32 +134,35 @@ export default function HomePage() {
           {/* The only read of `mystery` rather than `sealed`: the button stays
               put mid-reveal, it just changes its label. */}
           {state.mystery && (
-            <button
-              type="button"
+            <Button
               className="btn btn-ghost"
-              style={{ fontSize: 13, gap: 7 }}
-              onClick={peek}
+              variant="ghost"
+              // .button is h-10, and h-9 on a viewport past 768 — which fires
+              // on a desktop even though the frame is 430px wide. These are
+              // text links; the padding sizes them.
+              style={{ fontSize: 13, gap: 7, height: 'auto' }}
+              onPress={peek}
             >
-              <EyeIcon size={15} />
+              <EyeIcon style={{ width: 15, height: 15, margin: 0 }} />
               {peeking ? 'Hiding again…' : 'Peek'}
-            </button>
+            </Button>
           )}
-          <button
-            type="button"
+          <Button
             className="btn btn-ghost"
-            style={{ fontSize: 13 }}
-            onClick={() => router.push('/games')}
+            variant="ghost"
+            style={{ fontSize: 13, height: 'auto' }}
+            onPress={() => router.push('/games')}
           >
             Games
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             className="btn btn-ghost"
-            style={{ fontSize: 13 }}
-            onClick={() => router.push('/cash-out')}
+            variant="ghost"
+            style={{ fontSize: 13, height: 'auto' }}
+            onPress={() => router.push('/cash-out')}
           >
             Spend the jar →
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -162,41 +179,66 @@ export default function HomePage() {
             <strong style={{ fontWeight: 700 }}>{state.partner}</strong>
           </span>
         </div>
-        <div
-          style={{
-            display: 'flex',
-            height: 12,
-            borderRadius: 999,
-            overflow: 'hidden',
-            background: 'var(--color-neutral-200)',
-          }}
+        {/*
+          The split bar is one quantity in a known range — A's share of the jar
+          — so it is a Meter, and the track behind the fill is S's share by
+          construction. Two divs said the same thing to the eye and nothing at
+          all to a screen reader; this says it to both.
+
+          Colours are the 500 steps of each ramp. That is the contrast rule
+          working as intended, not against it: nothing is written on this bar,
+          so it is a non-text fill and 500 is the step for those. HeroUI's own
+          --accent is the 600 step, which is why the fill is painted here.
+
+          Sealed, the bar is forced to an even 50/50 and drops to the 300 steps.
+          The 50 is a decoy, so `valueLabel` speaks instead of it: a screen
+          reader hears "Sealed" where it would otherwise hear a number that is
+          not true. Masking that holds for the eye and leaks to the ear is not
+          masking.
+        */}
+        <Meter
+          aria-label={`${state.me}'s share of the jar`}
+          value={sealed ? 50 : meShare}
+          // 50 is the visual default for "nothing to split" and must stay, or
+          // the bar goes lopsided on an empty jar. But the old markup was two
+          // anonymous divs that said nothing; a Meter turns the same 50 into an
+          // assertion, and "Nick's share of the jar, 50 percent" directly
+          // contradicts the "0 fines since ..." line above it.
+          valueLabel={sealed ? 'sealed' : total ? undefined : 'Nothing in the jar'}
+          // .meter is a two-row grid, label over track, with a 4px gap it does
+          // not need here — there is no label row to separate.
+          style={{ gap: 0 }}
         >
-          <div
+          <Meter.Track
             style={{
-              background: sealed ? 'var(--color-accent-300)' : 'var(--color-accent-500)',
-              transition: 'width .5s ease',
-              width: sealed ? '50%' : `${meShare}%`,
-            }}
-          />
-          <div
-            style={{
-              flex: 1,
+              height: 12,
+              borderRadius: 999,
               background: sealed ? 'var(--color-accent-2-300)' : 'var(--color-accent-2-500)',
             }}
-          />
-        </div>
+          >
+            {/* Square, so the two shares butt flat against each other; the
+                track's own overflow clip rounds the outer ends. */}
+            <Meter.Fill
+              style={{
+                borderRadius: 0,
+                background: sealed ? 'var(--color-accent-300)' : 'var(--color-accent-500)',
+              }}
+            />
+          </Meter.Track>
+        </Meter>
       </div>
 
       <div style={{ padding: '14px 24px 0' }}>
-        <button
-          type="button"
+        <Button
           className="btn btn-primary btn-block"
+          variant="primary"
+          fullWidth
           style={{ height: 56, fontSize: 17, gap: 9, marginTop: 0 }}
-          onClick={() => router.push('/log')}
+          onPress={() => router.push('/log')}
         >
-          <PlusIcon size={19} />
+          <PlusIcon style={{ width: 19, height: 19, margin: 0 }} />
           Log a fine
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@
  * the jar carries on working on this phone.
  */
 
+import { Button, Input, Label, TextField } from '@heroui/react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -107,14 +108,14 @@ export default function SignInPage() {
 
           <div style={{ flex: 1 }} />
 
-          <button
-            type="button"
+          <Button
             className="btn btn-ghost btn-block"
+            variant="ghost"
             style={{ height: 46 }}
-            onClick={() => router.push('/pair')}
+            onPress={() => router.push('/pair')}
           >
             Never mind
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -138,17 +139,17 @@ export default function SignInPage() {
 
             <div style={{ flex: 1 }} />
 
-            <button
-              type="button"
+            <Button
               className="btn btn-ghost btn-block"
+              variant="ghost"
               style={{ height: 46 }}
-              onClick={() => {
+              onPress={() => {
                 setSentTo(null);
                 setError(null);
               }}
             >
               Use a different address
-            </button>
+            </Button>
           </>
         ) : (
           <form
@@ -163,23 +164,28 @@ export default function SignInPage() {
               Type your email. A link comes back — tap it on this phone and you&rsquo;re in.
             </p>
 
-            <div className="field" style={{ marginTop: 26 }}>
-              <label htmlFor="signin-email">Email</label>
-              <input
-                id="signin-email"
-                className="input"
+            {/* No isInvalid here: the errors this screen raises are about the
+                request, not the address — "One just went out" is not a reason
+                to mark the field wrong. */}
+            <TextField
+              className="field"
+              id="signin-email"
+              style={{ marginTop: 26, gap: 0 }}
+              type="email"
+              value={email}
+              onChange={setEmail}
+            >
+              <Label>Email</Label>
+              <Input
                 style={{ height: 44 }}
-                type="email"
                 inputMode="email"
                 autoComplete="email"
                 autoCapitalize="none"
                 spellCheck={false}
                 autoFocus
-                value={email}
                 placeholder="you@example.com"
-                onChange={(e) => setEmail(e.target.value)}
               />
-            </div>
+            </TextField>
 
             <div style={{ flex: 1 }} />
 
@@ -192,15 +198,21 @@ export default function SignInPage() {
               </p>
             ) : null}
 
-            <button
+            {/* aria-disabled rather than disabled: the press that sends the
+                link is the press that turns this off, and a real `disabled`
+                would throw focus back to the document mid-flow. send() checks
+                `sendable` itself, so a keyboard press that gets through is a
+                no-op. */}
+            <Button
               type="submit"
               className="btn btn-primary btn-block"
+              variant="primary"
               style={{ height: 54, fontSize: 17, marginTop: 0 }}
-              disabled={!sendable}
+              aria-disabled={!sendable}
               aria-busy={sending}
             >
               {sending ? 'Sending…' : 'Send the link'}
-            </button>
+            </Button>
           </form>
         )}
       </div>

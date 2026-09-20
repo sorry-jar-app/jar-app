@@ -8,6 +8,7 @@
  * and goes back to the jar.
  */
 
+import { Button } from '@heroui/react';
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Jar } from '@/components/Jar';
@@ -58,14 +59,14 @@ export default function CashedOutPage() {
         {cashOut.spun ? 'The wheel picked it. No appeals.' : 'Agreed by both of you.'}
       </div>
 
-      <button
-        type="button"
+      <Button
         className="btn btn-primary btn-block"
+        variant="primary"
         style={{ height: 54, fontSize: 17, marginTop: 30 }}
-        onClick={startNewJar}
+        onPress={startNewJar}
       >
         Start a new jar
-      </button>
+      </Button>
     </div>
   );
 }

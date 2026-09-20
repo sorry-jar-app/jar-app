@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button, Chip, Input, Label, TextField } from '@heroui/react';
 import { AmountField } from '@/components/AmountField';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SEVERITIES } from '@/lib/constants';
@@ -62,17 +63,17 @@ export default function EditRulePage() {
       <ScreenHeader title="Edit rule" backTo="/rules" />
 
       <div className="sj-body" style={{ padding: '4px 24px 18px', gap: 18 }}>
-        <div className="field">
-          <label htmlFor="rule-name">Name</label>
-          <input
-            id="rule-name"
-            className="input"
-            style={{ height: 44 }}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
+        {/* TextField wires the label to the input itself, so the id the
+            htmlFor used is no longer anyone's to get wrong. .field is on the
+            TextField root, not around it, because .field > label needs the
+            label to be a direct child. */}
+        <TextField className="field" value={name} onChange={setName}>
+          <Label>Name</Label>
+          <Input style={{ height: 44 }} />
+        </TextField>
 
+        {/* Not a NumberField. This field holds a raw string on its way through
+            parseAmount, and the 30px Caprasimo $ is the field. */}
         <div className="field">
           <label htmlFor="rule-price">Base price</label>
           <AmountField id="rule-price" value={price} onChange={setPrice} placeholder="" small />
@@ -94,30 +95,32 @@ export default function EditRulePage() {
 
         <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
           {SEVERITIES.map((sev) => (
-            <span key={sev.id} className="tag tag-accent">
-              {sev.name} {money(base * sev.mult)}
-            </span>
+            <Chip key={sev.id} className="tag tag-accent">
+              <Chip.Label style={{ padding: 0 }}>
+                {sev.name} {money(base * sev.mult)}
+              </Chip.Label>
+            </Chip>
           ))}
         </div>
       </div>
 
       <div className="sj-footer">
-        <button
-          type="button"
+        <Button
           className="btn btn-primary btn-block"
+          variant="ghost"
           style={{ height: 52, fontSize: 16, marginTop: 0 }}
-          onClick={save}
+          onPress={save}
         >
           Save changes
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
           className="btn btn-ghost btn-block"
+          variant="ghost"
           style={{ height: 44, color: 'var(--color-accent-700)' }}
-          onClick={remove}
+          onPress={remove}
         >
           Delete this rule
-        </button>
+        </Button>
       </div>
     </div>
   );

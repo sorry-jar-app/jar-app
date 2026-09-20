@@ -15,6 +15,7 @@
  * card: whoever came to join has no use for a code of their own yet.
  */
 
+import { Button, Card, Input, Label, TextField } from '@heroui/react';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { INVITE_CODE, INVITE_URL } from '@/lib/constants';
@@ -26,12 +27,20 @@ const COPIED_MS = 1600;
 /** The same drop box /join uses; /auth/callback redeems it after sign-in. */
 const PENDING_CODE = 'sorry-jar:pending-code';
 
+/**
+ * The invite panel. On HeroUI's Card the two extra lines matter: the app's own
+ * `.card` rule sets a gap this design does not want, and HeroUI's sets a
+ * surface shadow this design does not have. Both are stated away here rather
+ * than left to the cascade.
+ */
 const CARD: React.CSSProperties = {
   marginTop: 26,
   padding: '26px 22px',
   background: 'var(--color-surface)',
   borderRadius: 32,
   textAlign: 'center',
+  gap: 0,
+  boxShadow: 'none',
 };
 
 const CARD_LABEL: React.CSSProperties = {
@@ -204,39 +213,50 @@ function PairFlow() {
     <div className="sj-section" style={{ marginTop: 22 }}>
       <h6 className="sj-label">Came here with a code?</h6>
       <div style={{ display: 'flex', gap: 9, alignItems: 'flex-end' }}>
-        <div className="field" style={{ flex: 1 }}>
-          <label htmlFor="pair-code">Their invite code</label>
-          <input
-            id="pair-code"
+        {/* `id` on the TextField, not the Input: it is the id the generated
+            <label for> is written against. */}
+        <TextField
+          className="field"
+          id="pair-code"
+          style={{ flex: 1, gap: 0 }}
+          value={code}
+          isInvalid={joinError !== null}
+          onChange={(next) => {
+            setCode(next);
+            if (joinError) setJoinError(null);
+          }}
+        >
+          <Label>Their invite code</Label>
+          <Input
             ref={codeInput}
-            className="input"
             style={{ height: 44 }}
-            value={code}
             placeholder="JAR-4K2P"
             autoCapitalize="characters"
             autoComplete="off"
             spellCheck={false}
-            onChange={(e) => {
-              setCode(e.target.value);
-              if (joinError) setJoinError(null);
-            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') void join();
             }}
           />
-        </div>
-        <button
-          type="button"
+        </TextField>
+        {/* aria-disabled, not isDisabled: this is the button you press, and a
+            real `disabled` drops focus the instant it turns into "Joining…".
+            join() already refuses an empty code and a second press. */}
+        <Button
           className="btn btn-secondary"
+          variant="secondary"
           style={{ height: 44, marginTop: 0 }}
-          onClick={() => void join()}
-          disabled={joining || code.trim().length === 0}
+          onPress={() => void join()}
+          aria-disabled={joining || code.trim().length === 0}
           aria-busy={joining}
         >
           {joining ? 'Joining…' : 'Join'}
-        </button>
+        </Button>
       </div>
       {joinError && (
+        // Left as a live region. HeroUI's FieldError is wired to the input by
+        // aria-describedby, but React Aria strips role from it, and focus is on
+        // the Join button when this arrives — nothing would be announced.
         <p role="alert" style={{ fontSize: 13, color: 'var(--color-accent-700)' }}>
           {joinError}
         </p>
@@ -270,7 +290,7 @@ function PairFlow() {
       {leadWithCode && codeSection}
 
       {paired ? (
-        <div style={CARD}>
+        <Card style={CARD}>
           <div style={CARD_LABEL}>Paired with</div>
           <div
             style={{
@@ -284,23 +304,23 @@ function PairFlow() {
           <div className="text-muted" style={{ fontSize: 12 }}>
             Nothing left to send.
           </div>
-        </div>
+        </Card>
       ) : jarless ? (
-        <div style={CARD}>
+        <Card style={CARD}>
           <div style={CARD_LABEL}>No jar yet</div>
           <div className="text-muted" style={{ fontSize: 14, margin: '10px 0 2px' }}>
             Signing in worked; opening the jar did not.
           </div>
-          <button
-            type="button"
+          <Button
             className="btn btn-primary"
+            variant="primary"
             style={{ height: 44, marginTop: 16, width: '100%' }}
-            disabled={opening}
+            aria-disabled={opening}
             aria-busy={opening}
-            onClick={() => void open()}
+            onPress={() => void open()}
           >
             {opening ? 'Opening…' : 'Try again'}
-          </button>
+          </Button>
           {openError && (
             <p
               role="alert"
@@ -309,9 +329,9 @@ function PairFlow() {
               {openError}
             </p>
           )}
-        </div>
+        </Card>
       ) : (
-        <div style={CARD}>
+        <Card style={CARD}>
           <div style={CARD_LABEL}>Your code</div>
           <div
             style={{
@@ -325,35 +345,35 @@ function PairFlow() {
           </div>
           <div className="text-muted" style={{ fontSize: 12 }}>
             {/* The real link is only known on the client; hold the line's height. */}
-            {bare(link) || ' '}
+            {bare(link) || '\u00A0'}
           </div>
 
-          <div style={{ display: 'flex', gap: 9, marginTop: 20 }}>
+          <Card.Footer style={{ gap: 9, marginTop: 20 }}>
             {/* The label stays put so the button keeps its accessible name; the
                 confirmation is announced separately. */}
-            <button
-              type="button"
+            <Button
               className="btn btn-secondary"
+              variant="secondary"
               style={{ flex: 1, height: 44, marginTop: 0 }}
-              onClick={copyLink}
-              disabled={!link}
+              onPress={() => void copyLink()}
+              aria-disabled={!link}
             >
               Copy link
-            </button>
+            </Button>
             <span className="sj-visually-hidden" role="status" aria-live="polite">
               {copied ? 'Link copied' : ''}
             </span>
-            <button
-              type="button"
+            <Button
               className="btn btn-primary"
+              variant="primary"
               style={{ flex: 1, height: 44, marginTop: 0 }}
-              onClick={textIt}
-              disabled={!link}
+              onPress={textIt}
+              aria-disabled={!link}
             >
               Text it
-            </button>
-          </div>
-        </div>
+            </Button>
+          </Card.Footer>
+        </Card>
       )}
 
       {!paired && (
@@ -382,34 +402,34 @@ function PairFlow() {
       <div style={{ flex: 1 }} />
 
       {paired ? (
-        <button
-          type="button"
+        <Button
           className="btn btn-primary btn-block"
+          variant="primary"
           style={{ height: 54, fontSize: 17, marginTop: 0 }}
-          onClick={goJar}
+          onPress={goJar}
         >
           Start logging
-        </button>
+        </Button>
       ) : (
         <div className="sj-stack">
           {configured && !signedIn && (
-            <button
-              type="button"
+            <Button
               className="btn btn-secondary btn-block"
+              variant="secondary"
               style={{ height: 46, marginTop: 0 }}
-              onClick={goSignIn}
+              onPress={goSignIn}
             >
               Get a code that actually works
-            </button>
+            </Button>
           )}
-          <button
-            type="button"
+          <Button
             className="btn btn-ghost btn-block"
+            variant="ghost"
             style={{ height: 46, marginTop: 0 }}
-            onClick={goJar}
+            onPress={goJar}
           >
             Skip for now — start logging
-          </button>
+          </Button>
         </div>
       )}
     </div>
