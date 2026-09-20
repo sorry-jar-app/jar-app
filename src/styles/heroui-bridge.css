@@ -1,0 +1,82 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   HeroUI ← Organic.
+
+   One bridge, not four themes. The app already swaps its whole ramp on
+   :root[data-palette], so mapping HeroUI's semantic variables to those ramps
+   once means every palette drives HeroUI for free and a fifth palette needs no
+   change here at all.
+
+   Two things to know before editing:
+
+   1. The contrast rule. The 500 step of both ramps is too light to carry cream
+      text at body sizes (3.42:1). Anything with text or a glyph on an accent
+      fill uses 600 (7.11:1). HeroUI's --accent is a *background* with
+      --accent-foreground written on it, so --accent takes the 600 step. The
+      500 step stays where it belongs: non-text fills, which in this app means
+      coins, chart bars and toggle tracks, all drawn by the app's own CSS.
+
+   2. The name collision. HeroUI's @theme inline maps Tailwind tokens from its
+      semantics — --color-surface: var(--surface), --color-accent: var(--accent)
+      — and this app has used --color-surface and --color-accent for its own
+      palette since the handoff. Same names, different meanings. The app's
+      stylesheet loads last so its values win, which makes HeroUI's bg-surface
+      and bg-accent utilities resolve to the app's tokens. That happens to be
+      close to right, but "happens to be" is not a design. The block below
+      states it deliberately: the two systems are pinned to the same ramp, so
+      whichever name wins, the colour is the one intended.
+   ────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Surfaces and text */
+  --background: var(--color-bg);
+  --foreground: var(--color-text);
+  --surface: var(--color-surface);
+  --surface-foreground: var(--color-text);
+  --overlay: var(--color-neutral-100);
+  --overlay-foreground: var(--color-text);
+  --muted: var(--color-neutral-600);
+
+  /* Accent. 600, per the contrast rule above. */
+  --accent: var(--color-accent-600);
+  --accent-foreground: var(--color-bg);
+
+  /* Neutral fills */
+  --default: var(--color-neutral-200);
+  --default-foreground: var(--color-text);
+
+  /* Fields */
+  --field-background: var(--color-neutral-100);
+  --field-foreground: var(--color-text);
+  --field-placeholder: var(--color-neutral-500);
+  --field-border: var(--color-divider);
+
+  /* Status. The app has no status ramps of its own; sage carries success
+     because it is already the app's second voice. */
+  --success: var(--color-accent-2-600);
+  --success-foreground: var(--color-bg);
+  --warning: #8c5a1a;
+  --warning-foreground: var(--color-bg);
+  --danger: #8f3527;
+  --danger-foreground: var(--color-bg);
+
+  /* Lines */
+  --border: var(--color-divider);
+  --separator: var(--color-divider);
+  --focus: var(--color-accent-600);
+  --link: var(--color-accent-600);
+
+  /* Geometry. The organic system's own ladder: 8 / 16 / 28.
+     HeroUI derives its whole radius scale from --radius, and its --radius-lg
+     lands on 16 when --radius is 16. */
+  --radius: var(--radius-md);
+  --field-radius: var(--radius-md);
+  --border-width: 1px;
+
+  /* Type */
+  --font-sans: var(--font-body);
+}
+
+@theme inline {
+  --font-sans: var(--font-body);
+  --font-display: var(--font-heading);
+}

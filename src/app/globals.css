@@ -1,5 +1,17 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Stylesheet entry.
+
+   Order is load-bearing. Tailwind first, then HeroUI's own styles, then this
+   app's. HeroUI v3 is built on Tailwind v4's theme layer and ships a full
+   reset; the app's organic system has to land after it to win the cascade.
+   Move any of these and the palettes stop applying.
+   ────────────────────────────────────────────────────────────────────────── */
+
 @import 'tailwindcss';
 @import '@heroui/styles';
+@import '@heroui-pro/react/css';
+
 @import '../styles/organic.css';
 @import '../styles/palettes.css';
 @import '../styles/app.css';
+@import '../styles/heroui-bridge.css';
