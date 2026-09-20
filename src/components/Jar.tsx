@@ -1,25 +1,10 @@
 'use client';
 
-/**
- * The jar.
- *
- * Placeholder artwork, and knowingly so — the handoff calls for real
- * illustration before launch. It reads correctly: a rounded bottle, a lid, a
- * highlight arc, and coins clipped to the body.
- *
- * `animateLast` runs coinDrop on the newest coin. The caller gates it so the
- * animation fires on the landed screen and nowhere else.
- *
- * `tumbleKey` throws the money around: bump it and the coins are flung, then
- * fall, bounce off the walls and off each other, and settle wherever they
- * land. That is a real simulation rather than an animation — see lib/coinTumble
- * for why. It writes cx/cy straight to the DOM, because re-rendering nineteen
- * circles through React sixty times a second is not what React is for.
- */
 
 import { useCallback, useEffect, useId, useRef } from 'react';
 import { COIN_FILLS, COIN_SLOTS, JAR_BODY_PATH } from '@/lib/constants';
-import { fromSlots, kick, step, type Coin } from '@/lib/coinTumble';
+import { fromSlots, kick, step, wake, type Coin } from '@/lib/coinTumble';
+import { prefersReducedMotion } from '@/lib/reducedMotion';
 
 type JarProps = {
   width: number;
@@ -34,6 +19,24 @@ type JarProps = {
    * total. 0 means "never shaken".
    */
   tumbleKey?: number;
+  /**
+   * Which way is down, in screen space. A ref rather than a value so the tilt
+   * can change every frame without re-rendering. Defaults to straight down.
+   */
+  gravity?: { current: { x: number; y: number } };
+  /**
+   * Keep the simulation running even once the coins settle. Games that read
+   * live tilt need it; the jar screen does not, and letting it sleep is what
+   * keeps the animation frame loop off the battery.
+   */
+  alwaysOn?: boolean;
+  /** Called after each simulated frame, for a game that needs the positions. */
+  onFrame?: (coins: readonly Coin[]) => void;
+  /**
+   * Bump to rouse a settled pile without throwing it — what a tilt does. The
+   * loop starts, the coins slide to the new down, and it sleeps again.
+   */
+  wakeKey?: number;
   /** The wash behind the coins. */
   fill?: string;
   fillOpacity?: number;
@@ -44,11 +47,6 @@ type JarProps = {
   className?: string;
 };
 
-function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined' || !window.matchMedia) return false;
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
 export function Jar({
   width,
   height,
@@ -56,6 +54,10 @@ export function Jar({
   animateLast = false,
   nudge = false,
   tumbleKey = 0,
+  gravity,
+  wakeKey = 0,
+  alwaysOn = false,
+  onFrame,
   fill = 'var(--color-accent-100)',
   fillOpacity = 0.55,
   showLidShade = true,
@@ -90,15 +92,34 @@ export function Jar({
     paint();
   }, [coins, paint]);
 
+  // Kept in refs so changing either does not tear down a running loop.
+  const gravityRef = useRef(gravity);
+  gravityRef.current = gravity;
+  const frameCb = useRef(onFrame);
+  frameCb.current = onFrame;
+  const keepAwake = useRef(alwaysOn);
+  keepAwake.current = alwaysOn;
+
   const run = useCallback(() => {
     if (raf.current !== null) return;
     let last = performance.now();
+    let lastG = { x: 0, y: 1 };
     const frame = (now: number) => {
       const dt = (now - last) / 1000;
       last = now;
-      const moving = step(sim.current, dt);
+      const g = gravityRef.current?.current ?? { x: 0, y: 1 };
+
+      // A sleeping coin ignores gravity, so tipping the phone has to rouse the
+      // pile or nothing slides.
+      if (Math.hypot(g.x - lastG.x, g.y - lastG.y) > 0.03) {
+        wake(sim.current);
+        lastG = { x: g.x, y: g.y };
+      }
+
+      const moving = step(sim.current, dt, g.x, g.y);
       paint();
-      if (moving) {
+      frameCb.current?.(sim.current);
+      if (moving || keepAwake.current) {
         raf.current = requestAnimationFrame(frame);
       } else {
         raf.current = null;
@@ -106,6 +127,18 @@ export function Jar({
     };
     raf.current = requestAnimationFrame(frame);
   }, [paint]);
+
+  // A game turns the loop on and leaves it on; the jar screen never does.
+  useEffect(() => {
+    if (alwaysOn) run();
+  }, [alwaysOn, run]);
+
+  useEffect(() => {
+    if (wakeKey === 0) return;
+    if (prefersReducedMotion()) return;
+    wake(sim.current);
+    run();
+  }, [wakeKey, run]);
 
   useEffect(() => {
     if (tumbleKey === 0) return;

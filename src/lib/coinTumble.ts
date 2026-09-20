@@ -232,6 +232,20 @@ export function step(coins: Coin[], dt: number, gx = 0, gy = 1): boolean {
   return moving;
 }
 
+/**
+ * Rouse the pile without throwing it.
+ *
+ * Sleeping coins ignore gravity, which is the point — but it also means a coin
+ * asleep on the floor would not notice the phone being tipped. The tilt loop
+ * calls this whenever "down" moves appreciably.
+ */
+export function wake(coins: Coin[]): void {
+  for (const c of coins) {
+    c.asleep = false;
+    c.still = 0;
+  }
+}
+
 /** Fling every coin. Called on a shake or a tap. */
 export function kick(coins: Coin[], strength = 1, rand: () => number = Math.random): void {
   for (const c of coins) {

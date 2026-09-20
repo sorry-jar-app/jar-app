@@ -9,6 +9,7 @@ import { formatStarted } from '@/lib/when';
 import { veil } from '@/lib/money';
 import { sumFines, useStore } from '@/lib/store';
 import { useShake } from '@/lib/useShake';
+import { useTilt } from '@/lib/useTilt';
 
 /**
  * Home — the jar, the ledger, and the one button that matters.
@@ -37,12 +38,18 @@ export default function HomePage() {
   const [tumbleKey, setTumbleKey] = useState(0);
   const tumble = useCallback(() => setTumbleKey((n) => n + 1), []);
   const { requestAccess } = useShake(tumble);
+  // Tilt the phone and the coins slide. The pile is allowed to fall asleep, so
+  // `nudge` is what rouses it — the loop would otherwise never see the new
+  // gravity, and leaving it running would sit on the battery.
+  const { gravity, requestAccess: askTilt, nudge } = useTilt();
+
   const tapJar = useCallback(() => {
     // A click is a user gesture, which is the only moment iOS will let us ask
-    // for motion access. Harmless no-op everywhere else.
+    // for motion or orientation. Harmless no-op everywhere else.
     requestAccess();
+    askTilt();
     tumble();
-  }, [requestAccess, tumble]);
+  }, [requestAccess, askTilt, tumble]);
 
   return (
     <div className="sj-screen sj-screen--tabbed">
@@ -86,7 +93,14 @@ export default function HomePage() {
           aria-label="Shake the jar"
           onClick={tapJar}
         >
-          <Jar width={206} height={258} coins={state.coins} tumbleKey={tumbleKey} />
+          <Jar
+            width={206}
+            height={258}
+            coins={state.coins}
+            tumbleKey={tumbleKey}
+            gravity={gravity}
+            wakeKey={nudge}
+          />
         </button>
 
         <div
@@ -116,6 +130,14 @@ export default function HomePage() {
               {peeking ? 'Hiding again…' : 'Peek'}
             </button>
           )}
+          <button
+            type="button"
+            className="btn btn-ghost"
+            style={{ fontSize: 13 }}
+            onClick={() => router.push('/games')}
+          >
+            Games
+          </button>
           <button
             type="button"
             className="btn btn-ghost"
