@@ -74,7 +74,10 @@
      least to work with. It doubles as the pool table's rail and cloth stroke,
      which is the only reason that table has an edge. */
   --jar-rim: color-mix(in srgb, var(--foreground) 55%, transparent);
-  --jar-lid: color-mix(in oklch, var(--who-a) 70%, var(--foreground));
+  /* Darkened, never mixed toward --foreground: that inverts between modes, so
+     the cap came out a deep rose in light and a pale pink in dark, where it
+     outshouted the coin it is supposed to sit behind. */
+  --jar-lid: color-mix(in oklch, var(--who-a) 75%, #000);
 
   /* Game pieces. Non-text fills only — nothing here ever carries a word. */
   --piece-a: var(--who-a);
