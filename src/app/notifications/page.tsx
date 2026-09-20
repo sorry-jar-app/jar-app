@@ -77,7 +77,7 @@ export default function NotificationsPage() {
                   background: fine.who === 'A' ? 'var(--who-a)' : 'var(--who-s)',
                 }}
               />
-              <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                 <span className="text-sm" style={{ display: 'block' }}>
                   {eventLine(fine, partner)}
                 </span>

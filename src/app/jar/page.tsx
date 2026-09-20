@@ -96,15 +96,21 @@ export default function HomePage() {
           minHeight: 0,
         }}
       >
+        {/*
+          The jar is the product, so it gets the screen. It was drawn at a fixed
+          206x258 — about half the width of a phone, with dead space either side
+          and a gap underneath — which made the one thing you can actually play
+          with the smallest thing on its own screen. .sj-field gives it
+          everything between the header and the total, and the SVG keeps its own
+          ratio, so the tap target grows with it.
+        */}
         <button
           type="button"
-          className="sj-jar-tap"
+          className="sj-jar-tap sj-field sj-field--tall"
           aria-label="Shake the jar"
           onClick={tapJar}
         >
           <Jar
-            width={206}
-            height={258}
             coins={state.coins}
             tumbleKey={tumbleKey}
             gravity={gravity}
