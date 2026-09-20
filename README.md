@@ -1,11 +1,11 @@
-# Sorry Jar
+# Digi Jar
 
 A shared swear-jar / apology-jar app for two people. A couple defines rules, each rule has a base
 price, and when someone breaks one the other logs a fine. **Money is tracked only** — nothing moves
 through the app.
 
 Mobile web PWA, deployed on Vercel, wrapped for iOS/Android with Capacitor.
-Domains: `imsorryjar.app`, `imsorry.app`, `sorryjar.app`.
+Domains: `imdigijar.app`, `imsorry.app`, `digijar.app`.
 
 ## Stack
 

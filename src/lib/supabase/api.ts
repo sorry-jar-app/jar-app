@@ -10,7 +10,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Fine, NotificationPrefs, PaletteName, Person, Rule, Severity } from '@/lib/types';
+import type { Fine, NotificationPrefs, Person, Rule, Severity } from '@/lib/types';
 
 /* ── the jar as this device sees it ──────────────────────────────────────── */
 
@@ -26,7 +26,6 @@ export type JarContext = {
   meName: string;
   partnerName: string;
   mystery: boolean;
-  palette: PaletteName;
   notif: NotificationPrefs;
   totalEver: number;
 };
@@ -53,12 +52,6 @@ type FineRow = {
 };
 
 type CashOutRef = { cashed_at: string; destination: string };
-
-const PALETTES: PaletteName[] = ['Mulberry', 'Pine', 'Ink', 'Terracotta'];
-
-function asPalette(value: string): PaletteName {
-  return (PALETTES as string[]).includes(value) ? (value as PaletteName) : 'Mulberry';
-}
 
 /** Postgres numeric comes back as a string; money must not go through a float twice. */
 function money(value: string | number): number {
@@ -122,7 +115,6 @@ export async function loadJar(sb: SupabaseClient, meId: string): Promise<JarCont
     // partner_nickname migration.
     partnerName: mine?.partner_nickname?.trim() || nameOf(theirs?.user_id ?? null, 'Them'),
     mystery: mine?.mystery ?? false,
-    palette: asPalette(mine?.palette ?? 'Mulberry'),
     notif: {
       fined: mine?.notify_fined ?? true,
       selfFined: mine?.notify_self_fined ?? true,
@@ -330,7 +322,6 @@ export async function setMemberSettings(
   userId: string,
   patch: Partial<{
     mystery: boolean;
-    palette: PaletteName;
     partner_nickname: string | null;
     notify_fined: boolean;
     notify_self_fined: boolean;

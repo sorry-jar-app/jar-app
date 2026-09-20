@@ -3,11 +3,11 @@
 /**
  * Fine landed — the confirmation, and the only place a fine can be reversed.
  *
- * The jar here washes with --color-bg rather than the accent, and drops the
- * highlight arc, because the whole screen already sits on the accent-100
- * ground.
+ * The jar keeps the theme's own glass and drops the highlight arc: the screen
+ * behind it is the theme's gradient, and a second arc on top reads as a smudge.
  */
 
+import { Button } from '@heroui/react';
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Jar } from '@/components/Jar';
@@ -49,15 +49,13 @@ export default function LandedPage() {
   };
 
   return (
-    <div className="sj-screen sj-screen--centered sj-tinted">
+    <div className="sj-screen sj-screen--centered">
       <Jar
         width={190}
         height={238}
         coins={state.coins}
         animateLast={animate}
         nudge={animate}
-        fill="var(--color-bg)"
-        fillOpacity={0.6}
         showHighlight={false}
       />
 
@@ -73,17 +71,12 @@ export default function LandedPage() {
       </div>
 
       <div style={{ display: 'flex', gap: 10, width: '100%', marginTop: 26 }}>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, height: 50 }} onClick={undo}>
+        <Button variant="secondary" style={{ flex: 1 }} onPress={undo}>
           Undo
-        </button>
-        <button
-          type="button"
-          className="btn btn-primary"
-          style={{ flex: 1, height: 50 }}
-          onClick={() => router.push('/jar')}
-        >
+        </Button>
+        <Button style={{ flex: 1 }} onPress={() => router.push('/jar')}>
           Done
-        </button>
+        </Button>
       </div>
     </div>
   );

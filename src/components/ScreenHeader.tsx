@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@heroui/react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeftIcon } from './Icons';
 
@@ -9,6 +10,10 @@ import { ChevronLeftIcon } from './Icons';
  * `backTo` is explicit rather than router.back() so the flow is the one the
  * handoff specifies — One-off goes back to Log, Rule detail back to Rules —
  * no matter how the screen was reached.
+ *
+ * onPress rather than onClick: it handles touch, pen and keyboard as one thing
+ * and cancels cleanly when a press turns into a scroll, which is the bug a
+ * plain onClick has on a phone.
  */
 export function ScreenHeader({
   title,
@@ -23,14 +28,9 @@ export function ScreenHeader({
 
   return (
     <div className={tight ? 'sj-header sj-header--tight' : 'sj-header'}>
-      <button
-        type="button"
-        className="btn btn-icon btn-secondary"
-        aria-label="Back"
-        onClick={() => router.push(backTo)}
-      >
+      <Button variant="ghost" isIconOnly aria-label="Back" onPress={() => router.push(backTo)}>
         <ChevronLeftIcon />
-      </button>
+      </Button>
       <span className="sj-title">{title}</span>
     </div>
   );

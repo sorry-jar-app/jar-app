@@ -58,7 +58,7 @@ export function Jar({
   wakeKey = 0,
   alwaysOn = false,
   onFrame,
-  fill = 'var(--color-accent-100)',
+  fill = 'var(--jar-glass)',
   fillOpacity = 0.55,
   showLidShade = true,
   showHighlight = true,
@@ -191,9 +191,9 @@ export function Jar({
 
       {/* The jar body rocks, but only slightly — the money is what should move. */}
       <g ref={body}>
-        <rect x="66" y="2" width="68" height="19" rx="9.5" fill="var(--color-accent-700)" />
+        <rect x="66" y="2" width="68" height="19" rx="9.5" fill="var(--jar-lid)" />
         {showLidShade && (
-          <rect x="78" y="16" width="44" height="12" fill="var(--color-accent-700)" opacity="0.22" />
+          <rect x="78" y="16" width="44" height="12" fill="var(--jar-lid)" opacity="0.22" />
         )}
 
         <g clipPath={`url(#${clipId})`}>
@@ -226,7 +226,7 @@ export function Jar({
         <path
           d={JAR_BODY_PATH}
           fill="none"
-          stroke="color-mix(in srgb, var(--color-text) 26%, transparent)"
+          stroke="var(--jar-rim)"
           strokeWidth="3"
         />
         {showHighlight && (

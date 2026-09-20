@@ -7,8 +7,8 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * gitignored `ios/` and `android/` folders.
  */
 const config: CapacitorConfig = {
-  appId: 'app.sorryjar.jar',
-  appName: 'Sorry Jar',
+  appId: 'app.digijar.jar',
+  appName: 'Digi Jar',
   webDir: 'out',
   backgroundColor: '#f7f1e8',
   ios: {

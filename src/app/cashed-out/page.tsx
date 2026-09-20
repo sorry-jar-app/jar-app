@@ -8,6 +8,7 @@
  * and goes back to the jar.
  */
 
+import { Button } from '@heroui/react';
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Jar } from '@/components/Jar';
@@ -36,13 +37,11 @@ export default function CashedOutPage() {
   }
 
   return (
-    <div className="sj-screen sj-screen--centered sj-tinted">
+    <div className="sj-screen sj-screen--centered">
       <Jar
         width={168}
         height={210}
         coins={state.coins}
-        fill="var(--color-bg)"
-        fillOpacity={0.6}
         showLidShade={false}
         showHighlight={false}
       />
@@ -58,14 +57,9 @@ export default function CashedOutPage() {
         {cashOut.spun ? 'The wheel picked it. No appeals.' : 'Agreed by both of you.'}
       </div>
 
-      <button
-        type="button"
-        className="btn btn-primary btn-block"
-        style={{ height: 54, fontSize: 17, marginTop: 30 }}
-        onClick={startNewJar}
-      >
+      <Button size="lg" fullWidth style={{ marginTop: 30 }} onPress={startNewJar}>
         Start a new jar
-      </button>
+      </Button>
     </div>
   );
 }

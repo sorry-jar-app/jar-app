@@ -1,15 +1,20 @@
 'use client';
 
+import { InputGroup, TextField } from '@heroui/react';
+
 /**
- * The borderless money row — a big Caprasimo "$" on a surface pill with a
- * transparent input beside it. Used by One-off (30px) and Rule detail (26px).
+ * The money row: a "$" on the kit's input group, with the figure beside it.
+ *
+ * Not a NumberField. The store holds the raw string the user typed and
+ * parseAmount reads it at the last moment; a NumberField holds a number and
+ * would normalise "2." on the keystroke after the dot. InputGroup.Input is a
+ * plain text input, which is what that needs.
  */
 export function AmountField({
   id,
   value,
   onChange,
   placeholder = '0.00',
-  small = false,
   label,
 }: {
   /** Pass this when a visible <label htmlFor> should own the field. */
@@ -17,25 +22,30 @@ export function AmountField({
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  /**
+   * Accepted for the callers that still pass it. The kit ships one field size
+   * and the two call sites no longer differ.
+   */
   small?: boolean;
   label?: string;
 }) {
   return (
-    <div className={small ? 'sj-amount sj-amount--sm' : 'sj-amount'}>
-      <span className="sj-amount__symbol" aria-hidden="true">
-        $
-      </span>
-      <input
-        id={id}
-        className="sj-amount__input"
-        type="text"
-        inputMode="decimal"
-        // A visible label wins; aria-label is the fallback for fields without one.
-        aria-label={id ? undefined : (label ?? 'Amount')}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    </div>
+    <TextField
+      fullWidth
+      value={value}
+      onChange={onChange}
+      // A visible label wins; aria-label is the fallback for fields without one.
+      aria-label={id ? undefined : (label ?? 'Amount')}
+    >
+      <InputGroup fullWidth>
+        <InputGroup.Prefix aria-hidden="true">$</InputGroup.Prefix>
+        <InputGroup.Input
+          id={id}
+          type="text"
+          inputMode="decimal"
+          placeholder={placeholder}
+        />
+      </InputGroup>
+    </TextField>
   );
 }

@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button, Card, Chip, Input, TextField } from '@heroui/react';
+import { ListView } from '@heroui-pro/react';
 import { ChevronRightIcon, PlusIcon } from '@/components/Icons';
 import { SEVERITIES } from '@/lib/constants';
 import { money, parseAmount } from '@/lib/money';
@@ -46,93 +48,101 @@ export default function RulesPage() {
       </div>
 
       <div className="sj-body" style={{ padding: '12px 24px 20px', gap: 9 }}>
-        {state.rules.map((rule) => (
-          <button
-            key={rule.id}
-            type="button"
-            className="sj-surface-row sj-row"
-            onClick={() => openRule(rule.id)}
-          >
-            <span style={{ flex: 1, fontSize: 15 }}>{rule.name}</span>
-            <span className="sj-money" style={{ fontSize: 16 }}>
-              {money(rule.price)}
-            </span>
-            <ChevronRightIcon size={16} style={{ opacity: 0.45 }} />
-          </button>
-        ))}
+        {/* One tab stop for the whole list, arrow keys between rules, and
+            typeahead on the names — a list that grows should not grow the
+            tab order with it. */}
+        <ListView
+          aria-label="Rules"
+          variant="secondary"
+          // Deleting the last rule otherwise leaves a zero-height focusable
+          // grid that announces as empty. Before the port an empty list
+          // rendered nothing at all.
+          renderEmptyState={() => (
+            <p className="text-muted" style={{ fontSize: 13, margin: 0 }}>
+              No rules yet. Add the first one.
+            </p>
+          )}
+          items={state.rules}
+          onAction={(key) => openRule(String(key))}
+          // flexShrink:0 is load-bearing. .list-view ships an explicit
+          // min-height:0, which cancels the flexbox automatic minimum size, so
+          // it becomes the only child of .sj-body that can be squashed. Past
+          // about eight rules the list absorbs the whole overflow: the last
+          // rows paint on top of "Add a rule", and .sj-body never scrolls
+          // because after the crush everything "fits".
+          style={{ flexShrink: 0 }}
+        >
+          {(rule) => (
+            <ListView.Item id={rule.id} textValue={rule.name}>
+              <ListView.ItemContent>
+                <ListView.Title>{rule.name}</ListView.Title>
+              </ListView.ItemContent>
+              <ListView.ItemAction className="flex items-center gap-2">
+                <span className="sj-money" style={{ fontSize: 16 }}>
+                  {money(rule.price)}
+                </span>
+                <ChevronRightIcon size={16} className="text-muted" />
+              </ListView.ItemAction>
+            </ListView.Item>
+          )}
+        </ListView>
 
         {adding ? (
-          <div
-            className="sj-panel--accent"
-            style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
-          >
-            <div style={{ display: 'flex', gap: 9 }}>
-              <input
-                className="input"
-                style={{ flex: 1 }}
-                aria-label="Rule name"
-                placeholder="Rule name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <input
-                className="input"
-                style={{ width: 92 }}
-                aria-label="Base price"
-                inputMode="decimal"
-                placeholder="$0.00"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-              />
-            </div>
-            <div style={{ display: 'flex', gap: 9 }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{ flex: 1, height: 42 }}
-                onClick={closeForm}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                style={{ flex: 1, height: 42, marginTop: 0 }}
-                onClick={addRule}
-              >
-                Add rule
-              </button>
-            </div>
-          </div>
+          <Card>
+            <Card.Content style={{ gap: 10 }}>
+              <div style={{ display: 'flex', gap: 9 }}>
+                <TextField
+                  aria-label="Rule name"
+                  value={name}
+                  onChange={setName}
+                  style={{ flex: 1 }}
+                >
+                  <Input placeholder="Rule name" />
+                </TextField>
+                <TextField
+                  aria-label="Base price"
+                  value={price}
+                  onChange={setPrice}
+                  style={{ width: 92 }}
+                >
+                  <Input inputMode="decimal" placeholder="$0.00" />
+                </TextField>
+              </div>
+              <div style={{ display: 'flex', gap: 9 }}>
+                <Button variant="secondary" style={{ flex: 1 }} onPress={closeForm}>
+                  Cancel
+                </Button>
+                <Button style={{ flex: 1 }} onPress={addRule}>
+                  Add rule
+                </Button>
+              </div>
+            </Card.Content>
+          </Card>
         ) : (
-          <button
-            type="button"
-            className="btn btn-secondary btn-block"
-            style={{ height: 48, gap: 8, marginTop: 4 }}
-            onClick={() => setAdding(true)}
-          >
-            <PlusIcon size={17} />
+          <Button variant="secondary" fullWidth onPress={() => setAdding(true)}>
+            <PlusIcon />
             Add a rule
-          </button>
+          </Button>
         )}
 
-        <div
-          className="sj-panel sj-panel--sage"
-          style={{ marginTop: 12, padding: '18px 20px' }}
-        >
-          <h6 style={{ margin: '0 0 8px' }}>Severity</h6>
-          <p style={{ fontSize: 13, margin: '0 0 10px', opacity: 0.85 }}>
-            Every rule has a base price. When you log it, you pick how bad it was and the price
-            multiplies.
-          </p>
-          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-            {SEVERITIES.map((sev) => (
-              <span key={sev.id} className="tag tag-accent-2">
-                {sev.name} ×{sev.mult}
-              </span>
-            ))}
-          </div>
-        </div>
+        <Card style={{ marginTop: 12 }}>
+          <Card.Content style={{ gap: 8 }}>
+            <h6 style={{ margin: 0 }}>Severity</h6>
+            <p className="text-sm text-muted" style={{ margin: 0 }}>
+              Every rule has a base price. When you log it, you pick how bad it was and the price
+              multiplies.
+            </p>
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+              {SEVERITIES.map((sev) => (
+                <Chip key={sev.id}>
+                  <Chip.Label>
+                    {sev.name} ×{sev.mult}
+                  </Chip.Label>
+                </Chip>
+              ))}
+            </div>
+          </Card.Content>
+        </Card>
       </div>
     </div>
   );

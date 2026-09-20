@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Card } from '@heroui/react';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Toggle } from '@/components/Toggle';
@@ -61,40 +61,36 @@ export default function NotificationsPage() {
         </h6>
 
         {fines.slice(0, 4).map((fine) => (
-          <div
-            key={fine.id}
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '12px',
-              padding: '14px 18px',
-              background: 'var(--color-accent-100)',
-              borderRadius: '26px',
-            }}
-          >
-            <span
-              className="sj-dot"
-              style={{
-                marginTop: '6px',
-                background:
-                  fine.who === 'A'
-                    ? 'var(--color-accent-500)'
-                    : 'var(--color-accent-2-500)',
-              }}
-            />
-            <span style={{ flex: 1 }}>
-              <span style={{ fontSize: '14px', display: 'block' }}>
-                {eventLine(fine, partner)}
+          <Card key={fine.id}>
+            <Card.Content style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+              {/* Who the fine landed on. The kit has no dot, so this is the
+                  app's own — geometry inline, colour off the two-people
+                  tokens the artwork already uses. */}
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 8,
+                  height: 8,
+                  flexShrink: 0,
+                  marginTop: 6,
+                  borderRadius: '50%',
+                  background: fine.who === 'A' ? 'var(--who-a)' : 'var(--who-s)',
+                }}
+              />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span className="text-sm" style={{ display: 'block' }}>
+                  {eventLine(fine, partner)}
+                </span>
+                <span className="text-xs text-muted">
+                  {fine.label} · {rowLabel(fine.when, now)}
+                </span>
               </span>
-              <span className="text-muted" style={{ fontSize: '12px' }}>
-                {fine.label} · {rowLabel(fine.when, now)}
-              </span>
-            </span>
-          </div>
+            </Card.Content>
+          </Card>
         ))}
 
         {fines.length === 0 && (
-          <p className="text-muted" style={{ fontSize: '13px', margin: '2px 2px 0' }}>
+          <p className="text-sm text-muted" style={{ margin: '2px 2px 0' }}>
             Quiet in here.
           </p>
         )}
@@ -103,25 +99,20 @@ export default function NotificationsPage() {
           Tell me when
         </h6>
 
+        {/* Real switches. Each row is a <label role="switch"> now rather than a
+            <button aria-pressed> with a decorative track beside it, so the
+            name, the note and the state are one control. */}
         {prefRows.map((row) => (
-          <button
+          <Toggle
             key={row.key}
-            type="button"
-            className="sj-toggle-row"
-            aria-pressed={notif[row.key]}
-            onClick={() => dispatch({ type: 'notif/toggle', key: row.key })}
-          >
-            <span style={{ flex: 1 }}>
-              <span style={{ fontSize: '15px', display: 'block' }}>{row.name}</span>
-              <span className="text-muted" style={{ fontSize: '12px' }}>
-                {row.note}
-              </span>
-            </span>
-            <Toggle on={notif[row.key]} />
-          </button>
+            on={notif[row.key]}
+            onChange={() => dispatch({ type: 'notif/toggle', key: row.key })}
+            label={row.name}
+            description={row.note}
+          />
         ))}
 
-        <p className="text-muted" style={{ fontSize: '12px', margin: '6px 2px 0' }}>
+        <p className="text-xs text-muted" style={{ margin: '6px 2px 0' }}>
           Nothing else will buzz you. No streak nags, no weekly recaps.
         </p>
       </div>

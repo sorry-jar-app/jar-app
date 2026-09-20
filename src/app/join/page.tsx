@@ -3,13 +3,14 @@
 /**
  * Where an invite link lands.
  *
- * The handoff's link shape is sorryjar.app/j/<code>, but a path segment cannot
+ * The handoff's link shape is digijar.app/j/<code>, but a path segment cannot
  * be a route under `output: 'export'` — the Capacitor build would have to know
  * every code at build time. So the real page is this one, reading the code
  * from the query string, and next.config rewrites /j/:code onto it for the
  * pretty URL on the web. Both builds get a page that works.
  */
 
+import { Button } from '@heroui/react';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Jar } from '@/components/Jar';
@@ -60,28 +61,32 @@ function JoinFlow() {
           <p className="text-muted" style={{ fontSize: 15, marginTop: 18, maxWidth: 260 }}>
             That link is missing its code.
           </p>
-          <button
-            type="button"
-            className="btn btn-ghost"
+          <Button
+            variant="ghost"
             style={{ marginTop: 6 }}
-            onClick={() => router.replace('/pair')}
+            onPress={() => router.replace('/pair')}
           >
             Enter it by hand
-          </button>
+          </Button>
         </>
       ) : error ? (
         <>
-          <p style={{ fontSize: 15, marginTop: 18, maxWidth: 260, color: 'var(--color-accent-700)' }}>
+          {/* Kept as a live region rather than moved into a HeroUI Alert: the
+              error arrives with focus nowhere near it, and React Aria strips
+              role from its own message slots. */}
+          <p
+            role="alert"
+            style={{ fontSize: 15, marginTop: 18, maxWidth: 260, color: 'var(--danger)' }}
+          >
             {error}
           </p>
-          <button
-            type="button"
-            className="btn btn-ghost"
+          <Button
+            variant="ghost"
             style={{ marginTop: 6 }}
-            onClick={() => router.replace('/pair')}
+            onPress={() => router.replace('/pair')}
           >
             Try another code
-          </button>
+          </Button>
         </>
       ) : (
         <p className="text-muted" style={{ fontSize: 15, marginTop: 18 }}>

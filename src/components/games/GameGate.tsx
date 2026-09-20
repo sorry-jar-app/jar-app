@@ -13,6 +13,7 @@
  * costs is a fact about the game; what you have is not ours to print here.
  */
 
+import { Button } from '@heroui/react';
 import { useRouter } from 'next/navigation';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { GAMES, isOpen, priceOfEntry, type GameEntry } from '@/lib/games/catalogue';
@@ -45,7 +46,7 @@ export function GameGate({ href, children }: { href: string; children: React.Rea
             height="56"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="var(--color-accent-300)"
+            stroke="var(--accent)"
             strokeWidth="2.75"
             strokeLinecap="round"
             aria-hidden="true"
@@ -64,14 +65,9 @@ export function GameGate({ href, children }: { href: string; children: React.Rea
       </div>
 
       <div className="sj-footer">
-        <button
-          type="button"
-          className="btn btn-primary btn-block"
-          style={{ height: 54, fontSize: 17, marginTop: 0 }}
-          onClick={() => router.push('/games')}
-        >
+        <Button fullWidth onPress={() => router.push('/games')}>
           Back to the games
-        </button>
+        </Button>
       </div>
     </div>
   );

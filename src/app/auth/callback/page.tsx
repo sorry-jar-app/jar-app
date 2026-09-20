@@ -11,6 +11,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@heroui/react';
 import { Jar } from '@/components/Jar';
 import { useStore } from '@/lib/store';
 import { loadJar } from '@/lib/supabase/api';
@@ -153,32 +154,22 @@ export default function AuthCallbackPage() {
         <>
           <p
             role="alert"
-            style={{ fontSize: 15, marginTop: 18, maxWidth: 260, color: 'var(--color-accent-700)' }}
+            style={{ fontSize: 15, marginTop: 18, maxWidth: 260, color: 'var(--danger)' }}
           >
             {snag.line}
           </p>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            style={{ marginTop: 6 }}
-            onClick={() => router.replace('/pair')}
-          >
+          <Button variant="ghost" style={{ marginTop: 6 }} onPress={() => router.replace('/pair')}>
             {snag.action}
-          </button>
+          </Button>
         </>
       ) : dead ? (
         <>
           <p className="text-muted" style={{ fontSize: 15, marginTop: 18, maxWidth: 260 }}>
             That link has gone stale.
           </p>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            style={{ marginTop: 6 }}
-            onClick={() => router.replace('/signin')}
-          >
+          <Button variant="ghost" style={{ marginTop: 6 }} onPress={() => router.replace('/signin')}>
             Send a new one
-          </button>
+          </Button>
         </>
       ) : (
         <p className="text-muted" style={{ fontSize: 15, marginTop: 18 }}>

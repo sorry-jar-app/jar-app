@@ -15,6 +15,7 @@
  * card: whoever came to join has no use for a code of their own yet.
  */
 
+import { Button, Card, Chip, Input, Label, TextField } from '@heroui/react';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { INVITE_CODE, INVITE_URL } from '@/lib/constants';
@@ -26,20 +27,8 @@ const COPIED_MS = 1600;
 /** The same drop box /join uses; /auth/callback redeems it after sign-in. */
 const PENDING_CODE = 'sorry-jar:pending-code';
 
-const CARD: React.CSSProperties = {
-  marginTop: 26,
-  padding: '26px 22px',
-  background: 'var(--color-surface)',
-  borderRadius: 32,
-  textAlign: 'center',
-};
-
-const CARD_LABEL: React.CSSProperties = {
-  fontSize: 11,
-  letterSpacing: '0.1em',
-  textTransform: 'uppercase',
-  color: 'var(--color-accent-700)',
-};
+/** The invite panel's one placement decision. The kit owns the rest of it. */
+const CARD: React.CSSProperties = { marginTop: 26, textAlign: 'center' };
 
 /** Four characters, with or without the JAR- the design prints in front. */
 function looksLikeCode(entered: string): boolean {
@@ -204,40 +193,47 @@ function PairFlow() {
     <div className="sj-section" style={{ marginTop: 22 }}>
       <h6 className="sj-label">Came here with a code?</h6>
       <div style={{ display: 'flex', gap: 9, alignItems: 'flex-end' }}>
-        <div className="field" style={{ flex: 1 }}>
-          <label htmlFor="pair-code">Their invite code</label>
-          <input
-            id="pair-code"
+        {/* `id` on the TextField, not the Input: it is the id the generated
+            <label for> is written against. */}
+        <TextField
+          id="pair-code"
+          style={{ flex: 1 }}
+          value={code}
+          isInvalid={joinError !== null}
+          onChange={(next) => {
+            setCode(next);
+            if (joinError) setJoinError(null);
+          }}
+        >
+          <Label>Their invite code</Label>
+          <Input
             ref={codeInput}
-            className="input"
-            style={{ height: 44 }}
-            value={code}
             placeholder="JAR-4K2P"
             autoCapitalize="characters"
             autoComplete="off"
             spellCheck={false}
-            onChange={(e) => {
-              setCode(e.target.value);
-              if (joinError) setJoinError(null);
-            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') void join();
             }}
           />
-        </div>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          style={{ height: 44, marginTop: 0 }}
-          onClick={() => void join()}
-          disabled={joining || code.trim().length === 0}
+        </TextField>
+        {/* aria-disabled, not isDisabled: this is the button you press, and a
+            real `disabled` drops focus the instant it turns into "Joining…".
+            join() already refuses an empty code and a second press. */}
+        <Button
+          variant="secondary"
+          onPress={() => void join()}
+          aria-disabled={joining || code.trim().length === 0}
           aria-busy={joining}
         >
           {joining ? 'Joining…' : 'Join'}
-        </button>
+        </Button>
       </div>
       {joinError && (
-        <p role="alert" style={{ fontSize: 13, color: 'var(--color-accent-700)' }}>
+        // Left as a live region. HeroUI's FieldError is wired to the input by
+        // aria-describedby, but React Aria strips role from it, and focus is on
+        // the Join button when this arrives — nothing would be announced.
+        <p role="alert" style={{ fontSize: 13, color: 'var(--danger)' }}>
           {joinError}
         </p>
       )}
@@ -270,110 +266,80 @@ function PairFlow() {
       {leadWithCode && codeSection}
 
       {paired ? (
-        <div style={CARD}>
-          <div style={CARD_LABEL}>Paired with</div>
-          <div
-            style={{
-              fontFamily: 'var(--font-heading)',
-              fontSize: 34,
-              margin: '8px 0 2px',
-            }}
-          >
-            {displayName(state, 'S')}
-          </div>
-          <div className="text-muted" style={{ fontSize: 12 }}>
-            Nothing left to send.
-          </div>
-        </div>
+        <Card style={CARD}>
+          <Card.Content>
+            <div className="sj-label">Paired with</div>
+            <div style={{ fontSize: 34 }}>{displayName(state, 'S')}</div>
+            <div className="text-muted" style={{ fontSize: 12 }}>
+              Nothing left to send.
+            </div>
+          </Card.Content>
+        </Card>
       ) : jarless ? (
-        <div style={CARD}>
-          <div style={CARD_LABEL}>No jar yet</div>
-          <div className="text-muted" style={{ fontSize: 14, margin: '10px 0 2px' }}>
-            Signing in worked; opening the jar did not.
-          </div>
-          <button
-            type="button"
-            className="btn btn-primary"
-            style={{ height: 44, marginTop: 16, width: '100%' }}
-            disabled={opening}
-            aria-busy={opening}
-            onClick={() => void open()}
-          >
-            {opening ? 'Opening…' : 'Try again'}
-          </button>
-          {openError && (
-            <p
-              role="alert"
-              style={{ fontSize: 13, marginTop: 10, color: 'var(--color-accent-700)' }}
+        <Card style={CARD}>
+          <Card.Content>
+            <div className="sj-label">No jar yet</div>
+            <div className="text-muted" style={{ fontSize: 14 }}>
+              Signing in worked; opening the jar did not.
+            </div>
+          </Card.Content>
+          <Card.Footer style={{ flexDirection: 'column', gap: 10 }}>
+            <Button
+              fullWidth
+              aria-disabled={opening}
+              aria-busy={opening}
+              onPress={() => void open()}
             >
-              {openError}
-            </p>
-          )}
-        </div>
+              {opening ? 'Opening…' : 'Try again'}
+            </Button>
+            {openError && (
+              <p role="alert" style={{ fontSize: 13, margin: 0, color: 'var(--danger)' }}>
+                {openError}
+              </p>
+            )}
+          </Card.Footer>
+        </Card>
       ) : (
-        <div style={CARD}>
-          <div style={CARD_LABEL}>Your code</div>
-          <div
-            style={{
-              fontFamily: 'var(--font-heading)',
-              fontSize: 38,
-              letterSpacing: '0.06em',
-              margin: '8px 0 2px',
-            }}
-          >
-            {jar ? `JAR-${jar.inviteCode}` : INVITE_CODE}
-          </div>
-          <div className="text-muted" style={{ fontSize: 12 }}>
-            {/* The real link is only known on the client; hold the line's height. */}
-            {bare(link) || ' '}
-          </div>
+        <Card style={CARD}>
+          <Card.Content>
+            <div className="sj-label">Your code</div>
+            <div style={{ fontSize: 38, letterSpacing: '0.06em' }}>
+              {jar ? `JAR-${jar.inviteCode}` : INVITE_CODE}
+            </div>
+            <div className="text-muted" style={{ fontSize: 12 }}>
+              {/* The real link is only known on the client; hold the line's height. */}
+              {bare(link) || '\u00A0'}
+            </div>
+          </Card.Content>
 
-          <div style={{ display: 'flex', gap: 9, marginTop: 20 }}>
+          <Card.Footer style={{ gap: 9 }}>
             {/* The label stays put so the button keeps its accessible name; the
                 confirmation is announced separately. */}
-            <button
-              type="button"
-              className="btn btn-secondary"
-              style={{ flex: 1, height: 44, marginTop: 0 }}
-              onClick={copyLink}
-              disabled={!link}
+            <Button
+              variant="secondary"
+              style={{ flex: 1 }}
+              onPress={() => void copyLink()}
+              aria-disabled={!link}
             >
               Copy link
-            </button>
+            </Button>
             <span className="sj-visually-hidden" role="status" aria-live="polite">
               {copied ? 'Link copied' : ''}
             </span>
-            <button
-              type="button"
-              className="btn btn-primary"
-              style={{ flex: 1, height: 44, marginTop: 0 }}
-              onClick={textIt}
-              disabled={!link}
-            >
+            <Button style={{ flex: 1 }} onPress={textIt} aria-disabled={!link}>
               Text it
-            </button>
-          </div>
-        </div>
+            </Button>
+          </Card.Footer>
+        </Card>
       )}
 
       {!paired && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            marginTop: 22,
-            padding: '0 4px',
-          }}
-        >
-          <span
-            className="sj-dot"
-            style={{ background: 'var(--color-accent-2-500)' }}
-            aria-hidden="true"
-          />
-          <span className="text-muted" style={{ fontSize: 13 }}>
-            {jar ? 'Nobody has joined yet' : `Waiting for ${displayName(state, 'S')} to join`}
-          </span>
+        <div style={{ display: 'flex', marginTop: 22 }}>
+          <Chip>
+            <Chip.Label>
+              {jar ? 'Nobody has joined yet' : `Waiting for ${displayName(state, 'S')} to join`}
+            </Chip.Label>
+          </Chip>
         </div>
       )}
 
@@ -382,34 +348,19 @@ function PairFlow() {
       <div style={{ flex: 1 }} />
 
       {paired ? (
-        <button
-          type="button"
-          className="btn btn-primary btn-block"
-          style={{ height: 54, fontSize: 17, marginTop: 0 }}
-          onClick={goJar}
-        >
+        <Button size="lg" fullWidth onPress={goJar}>
           Start logging
-        </button>
+        </Button>
       ) : (
         <div className="sj-stack">
           {configured && !signedIn && (
-            <button
-              type="button"
-              className="btn btn-secondary btn-block"
-              style={{ height: 46, marginTop: 0 }}
-              onClick={goSignIn}
-            >
+            <Button variant="secondary" fullWidth onPress={goSignIn}>
               Get a code that actually works
-            </button>
+            </Button>
           )}
-          <button
-            type="button"
-            className="btn btn-ghost btn-block"
-            style={{ height: 46, marginTop: 0 }}
-            onClick={goJar}
-          >
+          <Button variant="ghost" fullWidth onPress={goJar}>
             Skip for now — start logging
-          </button>
+          </Button>
         </div>
       )}
     </div>

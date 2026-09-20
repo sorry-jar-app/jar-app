@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button, Card, Chip, Input, Label, TextField } from '@heroui/react';
 import { AmountField } from '@/components/AmountField';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SEVERITIES } from '@/lib/constants';
@@ -62,62 +63,54 @@ export default function EditRulePage() {
       <ScreenHeader title="Edit rule" backTo="/rules" />
 
       <div className="sj-body" style={{ padding: '4px 24px 18px', gap: 18 }}>
-        <div className="field">
-          <label htmlFor="rule-name">Name</label>
-          <input
-            id="rule-name"
-            className="input"
-            style={{ height: 44 }}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
+        {/* TextField wires the label to the input itself, so the id the
+            htmlFor used is no longer anyone's to get wrong. */}
+        <TextField value={name} onChange={setName}>
+          <Label>Name</Label>
+          <Input />
+        </TextField>
 
-        <div className="field">
-          <label htmlFor="rule-price">Base price</label>
+        {/* Not a NumberField. This field holds a raw string on its way through
+            parseAmount, and the 30px Caprasimo $ is the field. The stack is
+            hand-rolled because AmountField is not a HeroUI Input, but the
+            label is the kit's so it matches the one above. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <Label htmlFor="rule-price">Base price</Label>
           <AmountField id="rule-price" value={price} onChange={setPrice} placeholder="" small />
         </div>
 
-        <div className="sj-panel sj-panel--sage" style={{ padding: '18px 20px' }}>
-          <h6 style={{ margin: '0 0 8px' }}>So far</h6>
-          {/* Seals. This is accumulated fines — the same quantity Stats masks —
-              and reading it off three rules reconstructs the jar total. The
-              severity previews below do not seal: they are derived from the
-              base price being typed, so they give nothing away. */}
-          <div className="sj-money" style={{ fontSize: 26, lineHeight: 1.1 }}>
-            {veil(spent, sealed)}
-          </div>
-          <div className="text-muted" style={{ fontSize: 12, marginTop: 2 }}>
-            {logged} fines logged
-          </div>
-        </div>
+        <Card>
+          <Card.Content style={{ gap: 2 }}>
+            <h6 style={{ margin: '0 0 6px' }}>So far</h6>
+            {/* Seals. This is accumulated fines — the same quantity Stats masks —
+                and reading it off three rules reconstructs the jar total. The
+                severity previews below do not seal: they are derived from the
+                base price being typed, so they give nothing away. */}
+            <div className="sj-money" style={{ fontSize: 26, lineHeight: 1.1 }}>
+              {veil(spent, sealed)}
+            </div>
+            <div className="text-xs text-muted">{logged} fines logged</div>
+          </Card.Content>
+        </Card>
 
         <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
           {SEVERITIES.map((sev) => (
-            <span key={sev.id} className="tag tag-accent">
-              {sev.name} {money(base * sev.mult)}
-            </span>
+            <Chip key={sev.id}>
+              <Chip.Label>
+                {sev.name} {money(base * sev.mult)}
+              </Chip.Label>
+            </Chip>
           ))}
         </div>
       </div>
 
-      <div className="sj-footer">
-        <button
-          type="button"
-          className="btn btn-primary btn-block"
-          style={{ height: 52, fontSize: 16, marginTop: 0 }}
-          onClick={save}
-        >
+      <div className="sj-footer" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <Button size="lg" fullWidth onPress={save}>
           Save changes
-        </button>
-        <button
-          type="button"
-          className="btn btn-ghost btn-block"
-          style={{ height: 44, color: 'var(--color-accent-700)' }}
-          onClick={remove}
-        >
+        </Button>
+        <Button variant="danger-soft" fullWidth onPress={remove}>
           Delete this rule
-        </button>
+        </Button>
       </div>
     </div>
   );

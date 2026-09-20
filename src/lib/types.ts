@@ -45,7 +45,15 @@ export type SeverityOption = {
   mult: number;
 };
 
-export type PaletteName = 'Mulberry' | 'Pine' | 'Ink' | 'Terracotta';
+/**
+ * Which way the theme leans. Not a palette any more — the Glass theme brings
+ * its own colours, so the only thing left to choose is light or dark, and
+ * 'system' hands that to the OS.
+ *
+ * Per-device on purpose: one of you wanting dark says nothing about the other,
+ * so this is the one setting that does not sync.
+ */
+export type ThemeMode = 'light' | 'dark' | 'system';
 
 export type NotificationPrefs = {
   /** Partner fined you. */

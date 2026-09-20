@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState, type RefObject } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button, Card, Label, Slider } from '@heroui/react';
 import { GameGate } from '@/components/games/GameGate';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { JAR_BODY_PATH } from '@/lib/constants';
@@ -21,11 +22,6 @@ import { livesFrom } from '@/lib/games/catalogue';
 import { useStore } from '@/lib/store';
 import { useTilt } from '@/lib/useTilt';
 import { COIN_R, COURSES, START, inTrap, ledges, type Course } from '@/lib/games/roll/courses';
-
-// Slightly under the jar on Who's it, because this screen also carries a
-// course row above the play area and can show three buttons below it.
-const JAR_W = 196;
-const JAR_H = 245;
 
 /** The bottom of the drawing, past the jar's own floor so the clip trims it. */
 const FLOOR_BOTTOM = 252;
@@ -96,6 +92,10 @@ function unit(x: number, y: number): { x: number; y: number } {
 /**
  * The course, drawn. Shared by the animated screen and the still one, which
  * both need the same picture — one of them with a coin that moves.
+ *
+ * No width or height: the viewBox is the only size this drawing declares, and
+ * .sj-field scales it to whatever the screen has left. Every number in here is
+ * in viewBox units, which is the same system the physics is written in.
  */
 function CourseView({
   course,
@@ -107,26 +107,20 @@ function CourseView({
   coinRef: RefObject<SVGCircleElement | null>;
 }) {
   return (
-    <svg
-      viewBox="0 0 200 250"
-      style={{ width: JAR_W, height: JAR_H, display: 'block' }}
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 200 250" aria-hidden="true">
       <defs>
         <clipPath id={clipId}>
           <path d={JAR_BODY_PATH} />
         </clipPath>
       </defs>
 
+      {/* The same jar as everywhere else — lid, glass, rim — because it is the
+          same jar. At this size a bare body read as a bucket. */}
+      <rect x="66" y="2" width="68" height="19" rx="9.5" fill="var(--jar-lid)" />
+      <rect x="78" y="16" width="44" height="12" fill="var(--jar-lid)" opacity="0.22" />
+
       <g clipPath={`url(#${clipId})`}>
-        <rect
-          x="28"
-          y="20"
-          width="144"
-          height="232"
-          fill="var(--color-accent-100)"
-          opacity="0.55"
-        />
+        <rect x="28" y="20" width="144" height="232" fill="var(--jar-glass)" opacity="0.55" />
 
         {course.traps.map((t) => (
           <rect
@@ -135,8 +129,8 @@ function CourseView({
             y={course.goal}
             width={t.x1 - t.x0}
             height={FLOOR_BOTTOM - course.goal}
-            fill="var(--color-neutral-800)"
-            opacity="0.2"
+            fill="var(--foreground)"
+            opacity="0.22"
           />
         ))}
 
@@ -148,33 +142,43 @@ function CourseView({
             width={s.x1 - s.x0}
             height={FLOOR_BOTTOM - course.goal}
             rx="3"
-            fill="var(--color-accent-2-500)"
+            fill="var(--who-s)"
           />
         ))}
 
         <g>
           {course.pegs.map((p) => (
-            <circle
-              key={`peg-${p.x}-${p.y}`}
-              cx={p.x}
-              cy={p.y}
-              r={p.r}
-              fill="var(--color-neutral-400)"
-            />
+            <circle key={`peg-${p.x}-${p.y}`} cx={p.x} cy={p.y} r={p.r} fill="var(--piece-dead)" />
           ))}
         </g>
 
-        {/* The accent ramp is person A, and A is who owns up at the end. */}
-        <circle ref={coinRef} cx={START.x} cy={START.y} r={COIN_R} fill="var(--color-accent-500)" />
+        {/* The coin is person A, and A is who owns up at the end. */}
+        <circle ref={coinRef} cx={START.x} cy={START.y} r={COIN_R} fill="var(--who-a)" />
       </g>
 
-      <path
-        d={JAR_BODY_PATH}
-        fill="none"
-        stroke="color-mix(in srgb, var(--color-text) 26%, transparent)"
-        strokeWidth="3"
-      />
+      <path d={JAR_BODY_PATH} fill="none" stroke="var(--jar-rim)" strokeWidth="3" />
     </svg>
+  );
+}
+
+/**
+ * How the round ended, in a card.
+ *
+ * Mount it with key={outcome.round} — losing the same course twice produces
+ * the same words, and a live region whose text has not changed says nothing.
+ */
+function Verdict({ outcome }: { outcome: Outcome }) {
+  return (
+    <Card style={{ width: '100%' }}>
+      <Card.Content style={{ gap: 4 }}>
+        <span className="sj-title" style={{ display: 'block', fontSize: 22 }}>
+          {outcome.won ? 'Down safe' : 'Lost it'}
+        </span>
+        <span className="text-muted" style={{ fontSize: 13 }}>
+          {outcome.course}. {outcome.line}
+        </span>
+      </Card.Content>
+    </Card>
   );
 }
 
@@ -430,9 +434,26 @@ function RollPageScreen() {
     };
   }, [phase]);
 
-  /** Where the pointer sits relative to the middle of the jar is which way is down. */
+  /**
+   * Where the pointer sits relative to the middle of the field is which way is
+   * down.
+   *
+   * Measured off the live element every time, never off a stored size: the
+   * field is now whatever the screen has left over, which is a different number
+   * on every device and changes again when the keyboard or the address bar
+   * moves.
+   *
+   * Off the SVG, not off the wrapper it sits in. .sj-field is full width and
+   * the jar is centred inside it at its own ratio, so on a tall field the
+   * wrapper is appreciably wider than the drawing. Normalising against the
+   * wrapper leaves the centre right and the extent wrong: the lean only
+   * reaches its limit at the edge of an invisible box, so dragging to the
+   * visible edge of the jar gives less than a full tip.
+   */
   const aim = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const box = e.currentTarget.getBoundingClientRect();
+    const svg = e.currentTarget.querySelector('svg');
+    const box = (svg ?? e.currentTarget).getBoundingClientRect();
+    if (box.width === 0 || box.height === 0) return;
     steer.current = unit(
       (e.clientX - (box.left + box.width / 2)) / (box.width / 2),
       (e.clientY - (box.top + box.height / 2)) / (box.height / 2),
@@ -526,7 +547,7 @@ function RollPageScreen() {
             drop it.
           </p>
 
-          <div style={{ flex: 'none' }}>
+          <div className="sj-field sj-field--tall">
             <CourseView course={course} clipId={clipId} coinRef={coinNode} />
           </div>
 
@@ -541,52 +562,40 @@ function RollPageScreen() {
               width: '100%',
             }}
           >
-            {outcome && (
-              // Keyed on the round so losing the same course twice announces twice.
-              <div key={outcome.round} className="sj-panel sj-panel--accent" style={{ width: '100%' }}>
-                <span className="sj-title" style={{ display: 'block', fontSize: 22 }}>
-                  {outcome.won ? 'Down safe' : 'Lost it'}
-                </span>
-                <span className="text-muted" style={{ fontSize: 13 }}>
-                  {outcome.course}. {outcome.line}
-                </span>
-              </div>
-            )}
+            {outcome && <Verdict key={outcome.round} outcome={outcome} />}
           </div>
         </div>
 
         <div className="sj-footer">
-          <div className="field" style={{ marginBottom: 10 }}>
-            <label htmlFor="roll-lean">Lean &mdash; {leanLabel(lean)}</label>
-            <input
-              id="roll-lean"
-              type="range"
-              min={-LEAN_MAX}
-              max={LEAN_MAX}
-              step={LEAN_STEP}
+          <div style={{ marginBottom: 10 }}>
+            <Slider
               value={lean}
-              onChange={(e) => setLean(Number(e.target.value))}
-              style={{ width: '100%', accentColor: 'var(--color-accent-500)' }}
-            />
+              onChange={(v) => setLean(Array.isArray(v) ? v[0] : v)}
+              minValue={-LEAN_MAX}
+              maxValue={LEAN_MAX}
+              step={LEAN_STEP}
+            >
+              <Label>Lean</Label>
+              <Slider.Output>{leanLabel(lean)}</Slider.Output>
+              <Slider.Track>
+                <Slider.Fill />
+                <Slider.Thumb />
+              </Slider.Track>
+            </Slider>
           </div>
 
           {/* Stable slot: the same leading button in every state, so focus survives. */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-            <button
-              type="button"
-              className="btn btn-primary btn-block"
-              style={{ height: 54, fontSize: 17, marginTop: 0 }}
-              onClick={() => dropStill(lean / 100)}
-            >
+            <Button size="lg" fullWidth onPress={() => dropStill(lean / 100)}>
               {phase === 'done' ? 'Drop another' : 'Drop the coin'}
-            </button>
+            </Button>
 
             {phase === 'done' && outcome?.won && hasNext && (
-              <button
-                type="button"
-                className="btn btn-secondary btn-block"
-                style={{ height: 46, marginTop: 0 }}
-                onClick={() => {
+              <Button
+                variant="secondary"
+                size="lg"
+                fullWidth
+                onPress={() => {
                   setIndex(index + 1);
                   setOutcome(null);
                   setPhase('idle');
@@ -594,18 +603,15 @@ function RollPageScreen() {
                 }}
               >
                 Next course
-              </button>
+              </Button>
             )}
 
             {phase === 'done' && outcome && (
-              <button
-                type="button"
-                className="btn btn-ghost"
-                style={{ alignSelf: 'center', marginTop: 0 }}
-                onClick={ownUp}
-              >
-                {outcome.won ? 'Log one anyway' : 'Own up to it'}
-              </button>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <Button variant="ghost" onPress={ownUp}>
+                  {outcome.won ? 'Log one anyway' : 'Own up to it'}
+                </Button>
+              </div>
             )}
           </div>
 
@@ -629,18 +635,23 @@ function RollPageScreen() {
           <span className="sj-title" style={{ fontSize: 15 }}>
             {course.name}
           </span>
+          {/* Three drawn dots, not a component: this is artwork, and it is the
+              one place on the screen where the two people's colours say which
+              course you are on. */}
           <span aria-hidden="true" style={{ display: 'flex', gap: 5 }}>
             {COURSES.map((c, i) => (
               <span
                 key={c.name}
-                className="sj-dot"
                 style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: '50%',
                   background:
                     i === index
-                      ? 'var(--color-accent-500)'
+                      ? 'var(--who-a)'
                       : i < index
-                        ? 'var(--color-accent-300)'
-                        : 'var(--color-neutral-300)',
+                        ? 'var(--who-a-soft)'
+                        : 'var(--piece-dead)',
                 }}
               />
             ))}
@@ -650,9 +661,12 @@ function RollPageScreen() {
           </span>
         </div>
 
-        {/* flex: none, or the jar is the thing that gets squashed on a short phone. */}
+        {/* The board is the screen. .sj-field takes everything between the
+            course row and the footer and scales the drawing to fit it — the
+            handlers measure this element, so a bigger field just means a
+            longer throw. */}
         <div
-          style={{ flex: 'none', touchAction: 'none' }}
+          className="sj-field sj-field--tall"
           onPointerDown={grab}
           onPointerMove={aim}
           onPointerUp={release}
@@ -674,17 +688,7 @@ function RollPageScreen() {
             width: '100%',
           }}
         >
-          {outcome && (
-            // Keyed on the round so losing the same course twice announces twice.
-            <div key={outcome.round} className="sj-panel sj-panel--accent" style={{ width: '100%' }}>
-              <span className="sj-title" style={{ display: 'block', fontSize: 22 }}>
-                {outcome.won ? 'Down safe' : 'Lost it'}
-              </span>
-              <span className="text-muted" style={{ fontSize: 13 }}>
-                {outcome.course}. {outcome.line}
-              </span>
-            </div>
-          )}
+          {outcome && <Verdict key={outcome.round} outcome={outcome} />}
         </div>
       </div>
 
@@ -699,37 +703,32 @@ function RollPageScreen() {
           is never offered as the thing that buys another drop.
         */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-          <button
-            type="button"
-            className={
-              phase === 'playing' ? 'btn btn-secondary btn-block' : 'btn btn-primary btn-block'
-            }
-            style={{ height: 54, fontSize: 17, marginTop: 0 }}
-            onClick={() => begin(movesOn ? index + 1 : index)}
+          <Button
+            variant={phase === 'playing' ? 'secondary' : 'primary'}
+            size="lg"
+            fullWidth
+            onPress={() => begin(movesOn ? index + 1 : index)}
           >
             {leadLabel}
-          </button>
+          </Button>
 
           {phase === 'done' && outcome && (
-            <button
-              type="button"
-              className="btn btn-secondary btn-block"
-              style={{ height: 46, marginTop: 0 }}
-              onClick={movesOn ? () => begin(index) : outcome.won ? () => begin(0) : ownUp}
+            <Button
+              variant="secondary"
+              size="lg"
+              fullWidth
+              onPress={movesOn ? () => begin(index) : outcome.won ? () => begin(0) : ownUp}
             >
               {movesOn ? 'Go again' : outcome.won ? 'Back to the first one' : 'Own up to it'}
-            </button>
+            </Button>
           )}
 
           {phase === 'done' && outcome?.won && (
-            <button
-              type="button"
-              className="btn btn-ghost"
-              style={{ alignSelf: 'center', marginTop: 0 }}
-              onClick={ownUp}
-            >
-              Log one anyway
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <Button variant="ghost" onPress={ownUp}>
+                Log one anyway
+              </Button>
+            </div>
           )}
         </div>
         <p className="text-muted" style={{ fontSize: 12, textAlign: 'center', margin: '10px 0 0' }}>
