@@ -2,25 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Chip, Input, TextField } from '@heroui/react';
+import { Button, Card, Chip, Input, TextField } from '@heroui/react';
 import { ListView } from '@heroui-pro/react';
 import { ChevronRightIcon, PlusIcon } from '@/components/Icons';
 import { SEVERITIES } from '@/lib/constants';
 import { money, parseAmount } from '@/lib/money';
 import { useStore } from '@/lib/store';
-
-/* .list-view--secondary paints its items transparent and rules a line under
-   each one, both at a specificity .sj-surface-row cannot reach. Inline wins
-   outright, and the hover tint has to come back the same way because the
-   list's own :hover outranks .sj-row:hover too. */
-function ruleRowStyle({ isHovered }: { isHovered: boolean }): React.CSSProperties {
-  return {
-    background: isHovered
-      ? 'color-mix(in srgb, var(--color-text) 5%, transparent)'
-      : 'var(--color-surface)',
-    borderBottomColor: 'transparent',
-  };
-}
 
 export default function RulesPage() {
   const router = useRouter();
@@ -83,104 +70,79 @@ export default function RulesPage() {
           // about eight rules the list absorbs the whole overflow: the last
           // rows paint on top of "Add a rule", and .sj-body never scrolls
           // because after the crush everything "fits".
-          style={{ display: 'flex', flexDirection: 'column', gap: 9, flexShrink: 0 }}
+          style={{ flexShrink: 0 }}
         >
           {(rule) => (
-            <ListView.Item
-              id={rule.id}
-              textValue={rule.name}
-              className="sj-surface-row"
-              style={ruleRowStyle}
-            >
+            <ListView.Item id={rule.id} textValue={rule.name}>
               <ListView.ItemContent>
-                <span style={{ flex: 1, fontSize: 15 }}>{rule.name}</span>
+                <ListView.Title>{rule.name}</ListView.Title>
+              </ListView.ItemContent>
+              <ListView.ItemAction className="flex items-center gap-2">
                 <span className="sj-money" style={{ fontSize: 16 }}>
                   {money(rule.price)}
                 </span>
-                {/* The list tints its own svg children --muted; the chevron
-                    has always been the row's ink at 45%. */}
-                <ChevronRightIcon size={16} style={{ opacity: 0.45, color: 'inherit' }} />
-              </ListView.ItemContent>
+                <ChevronRightIcon size={16} className="text-muted" />
+              </ListView.ItemAction>
             </ListView.Item>
           )}
         </ListView>
 
         {adding ? (
-          <div
-            className="sj-panel--accent"
-            style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
-          >
-            <div style={{ display: 'flex', gap: 9 }}>
-              <TextField
-                aria-label="Rule name"
-                value={name}
-                onChange={setName}
-                style={{ flex: 1 }}
-              >
-                <Input placeholder="Rule name" />
-              </TextField>
-              <TextField
-                aria-label="Base price"
-                value={price}
-                onChange={setPrice}
-                style={{ width: 92 }}
-              >
-                <Input inputMode="decimal" placeholder="$0.00" />
-              </TextField>
-            </div>
-            <div style={{ display: 'flex', gap: 9 }}>
-              <Button
-                className="btn btn-secondary"
-                variant="ghost"
-                style={{ flex: 1, height: 42 }}
-                onPress={closeForm}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="btn btn-primary"
-                variant="ghost"
-                style={{ flex: 1, height: 42, marginTop: 0 }}
-                onPress={addRule}
-              >
-                Add rule
-              </Button>
-            </div>
-          </div>
+          <Card>
+            <Card.Content style={{ gap: 10 }}>
+              <div style={{ display: 'flex', gap: 9 }}>
+                <TextField
+                  aria-label="Rule name"
+                  value={name}
+                  onChange={setName}
+                  style={{ flex: 1 }}
+                >
+                  <Input placeholder="Rule name" />
+                </TextField>
+                <TextField
+                  aria-label="Base price"
+                  value={price}
+                  onChange={setPrice}
+                  style={{ width: 92 }}
+                >
+                  <Input inputMode="decimal" placeholder="$0.00" />
+                </TextField>
+              </div>
+              <div style={{ display: 'flex', gap: 9 }}>
+                <Button variant="secondary" style={{ flex: 1 }} onPress={closeForm}>
+                  Cancel
+                </Button>
+                <Button style={{ flex: 1 }} onPress={addRule}>
+                  Add rule
+                </Button>
+              </div>
+            </Card.Content>
+          </Card>
         ) : (
-          <Button
-            className="btn btn-secondary btn-block"
-            variant="ghost"
-            style={{ height: 48, gap: 8, marginTop: 4 }}
-            onPress={() => setAdding(true)}
-          >
-            {/* .button sizes its own svg children at 20px, 16px above 640. */}
-            <PlusIcon size={17} style={{ width: 17, height: 17, margin: 0 }} />
+          <Button variant="secondary" fullWidth onPress={() => setAdding(true)}>
+            <PlusIcon />
             Add a rule
           </Button>
         )}
 
-        <div
-          className="sj-panel sj-panel--sage"
-          style={{ marginTop: 12, padding: '18px 20px' }}
-        >
-          <h6 style={{ margin: '0 0 8px' }}>Severity</h6>
-          <p style={{ fontSize: 13, margin: '0 0 10px', opacity: 0.85 }}>
-            Every rule has a base price. When you log it, you pick how bad it was and the price
-            multiplies.
-          </p>
-          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-            {SEVERITIES.map((sev) => (
-              // .chip__label adds its own 2px inline padding on top of .tag's
-              // 3px/10px; zeroing it keeps the tag the width it has always been.
-              <Chip key={sev.id} className="tag tag-accent-2">
-                <Chip.Label style={{ padding: 0 }}>
-                  {sev.name} ×{sev.mult}
-                </Chip.Label>
-              </Chip>
-            ))}
-          </div>
-        </div>
+        <Card style={{ marginTop: 12 }}>
+          <Card.Content style={{ gap: 8 }}>
+            <h6 style={{ margin: 0 }}>Severity</h6>
+            <p className="text-sm text-muted" style={{ margin: 0 }}>
+              Every rule has a base price. When you log it, you pick how bad it was and the price
+              multiplies.
+            </p>
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+              {SEVERITIES.map((sev) => (
+                <Chip key={sev.id}>
+                  <Chip.Label>
+                    {sev.name} ×{sev.mult}
+                  </Chip.Label>
+                </Chip>
+              ))}
+            </div>
+          </Card.Content>
+        </Card>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 'use client';
 
+import { Alert } from '@heroui/react';
 import { useStore } from '@/lib/store';
 
 /**
@@ -11,14 +12,35 @@ import { useStore } from '@/lib/store';
  * so no realtime event arrives to put the screen right. The store refetches,
  * which makes the change disappear again; without this the person just watches
  * it vanish and is told nothing.
+ *
+ * It floats over the screen rather than taking a row in it, clear of the tab
+ * bar. That position is the only thing said here; the banner itself is the
+ * theme's danger Alert.
  */
 export function SyncNotice() {
   const { syncError } = useStore();
   if (!syncError) return null;
 
   return (
-    <div className="sj-sync-notice" role="status" aria-live="polite">
-      {syncError}
-    </div>
+    <Alert
+      status="danger"
+      role="status"
+      aria-live="polite"
+      style={{
+        position: 'absolute',
+        left: 16,
+        right: 16,
+        // .alert is w-full, which would run it past the right edge once both
+        // sides are pinned.
+        width: 'auto',
+        bottom: 'calc(var(--sj-tabbar-space) + 10px)',
+        zIndex: 6,
+      }}
+    >
+      <Alert.Indicator />
+      <Alert.Content>
+        <Alert.Title>{syncError}</Alert.Title>
+      </Alert.Content>
+    </Alert>
   );
 }

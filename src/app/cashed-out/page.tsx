@@ -37,13 +37,11 @@ export default function CashedOutPage() {
   }
 
   return (
-    <div className="sj-screen sj-screen--centered sj-tinted">
+    <div className="sj-screen sj-screen--centered">
       <Jar
         width={168}
         height={210}
         coins={state.coins}
-        fill="var(--color-bg)"
-        fillOpacity={0.6}
         showLidShade={false}
         showHighlight={false}
       />
@@ -59,12 +57,7 @@ export default function CashedOutPage() {
         {cashOut.spun ? 'The wheel picked it. No appeals.' : 'Agreed by both of you.'}
       </div>
 
-      <Button
-        className="btn btn-primary btn-block"
-        variant="primary"
-        style={{ height: 54, fontSize: 17, marginTop: 30 }}
-        onPress={startNewJar}
-      >
+      <Button size="lg" fullWidth style={{ marginTop: 30 }} onPress={startNewJar}>
         Start a new jar
       </Button>
     </div>

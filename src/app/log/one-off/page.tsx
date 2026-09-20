@@ -30,64 +30,9 @@ import { useStore } from '@/lib/store';
 
 const QUICK_AMOUNTS = [1, 2, 5, 10];
 
-/*
- * The quick amounts, on HeroUI's terms.
- *
- * A single-select ToggleButtonGroup wrote radiogroup and radio into the markup
- * and was a toolbar underneath: every pill tabbable, and an arrow key that
- * moved focus without moving the selection. RadioGroup wires the real thing —
- * the selected radio is the only tab stop, and the arrows select, because
- * underneath each pill is a native radio input.
- *
- * Most of what this block used to say went with the toggle button.
- * .toggle-button was a fixed 40px control that painted its own fills, so the
- * height and the radius had to be pinned back. .radio__content is none of
- * that — no height, no background, no radius, and HeroUI paints selection on
- * .radio__control, which this group does not render — so .sj-pill and
- * .sj-pill[data-on='true'] are left to do the whole job unopposed.
- */
-
-/* .radio-group is a wrapping flex row at gap-4 when horizontal. The row it
-   replaces filled the width, could not wrap, and sat at 8. Stated in full so
-   it is the same row; display:flex is block-level inside the column that is
-   .sj-section, which is what fullWidth was for. */
-const QUICK_ROW: React.CSSProperties = {
-  display: 'flex',
-  flexWrap: 'nowrap',
-  alignItems: 'center',
-  gap: 8,
-};
-
-/* Four equal shares of that row. organic.css:165 still has the app's legacy
-   .radio — inline-flex, centred — and it is unlayered, so it beats HeroUI's
-   own .radio: left alone, each option shrinks to its text and the pill inside
-   it is centred rather than filling the share it was given. */
-const QUICK_OPTION: React.CSSProperties = { display: 'flex', flex: 1, alignItems: 'stretch' };
-
-/*
- * Two things the classes cannot say, and the ring.
- *
- * justify-content, because .toggle-button centred its own label and
- * .radio__content does not. app.css sets text-align, which does nothing for a
- * bare figure sitting in a flex box that is wider than it is.
- *
- * white-space, because .toggle-button carried `whitespace-nowrap` and
- * .radio__content does not, and app.css never gives .sj-pill one.
- *
- * And the focus ring, because the box that takes focus is no longer the box
- * you can see. The real target is the native input, and organic.css:166 has
- * it at opacity 0 — a ring drawn there is a ring drawn on nothing. HeroUI
- * rings .radio__control instead, which this group omits. So the ring is asked
- * for here, on the pill, in the app's own terms, which is where it sat when
- * the pill was a button.
- */
-function quickPillStyle({ isFocusVisible }: { isFocusVisible: boolean }): React.CSSProperties {
-  return {
-    justifyContent: 'center',
-    whiteSpace: 'nowrap',
-    ...(isFocusVisible ? { outline: '2px solid var(--color-accent)', outlineOffset: 2 } : null),
-  };
-}
+/* Four equal shares of the row, so the amounts divide the width instead of
+   bunching at the start. Geometry, not decoration. */
+const OPTION: React.CSSProperties = { flex: 1 };
 
 export default function OneOffFinePage() {
   const router = useRouter();
@@ -139,12 +84,11 @@ export default function OneOffFinePage() {
       >
         <WhoPicker />
 
-        {/* .textfield is a 4px-gap column and .sj-section is a 10px one, so the
-            field owns the section outright rather than sitting in a wrapper.
-            The h6 names the input by reference: one string, not two that can
-            drift. */}
+        {/* The field is its own section: .textfield is already the column that
+            holds a heading over an input, so there is no wrapper. The h6 names
+            the input by reference — one string, not two that can drift. */}
         <TextField
-          className="sj-section"
+          fullWidth
           aria-labelledby={whatId}
           value={customName}
           onChange={(value) => dispatch({ type: 'draft/patch', patch: { customName: value } })}
@@ -152,11 +96,7 @@ export default function OneOffFinePage() {
           <h6 className="sj-label" id={whatId}>
             What happened
           </h6>
-          <Input
-            className="input"
-            style={{ height: 48, fontSize: 15 }}
-            placeholder="Ate my leftovers"
-          />
+          <Input placeholder="Ate my leftovers" />
         </TextField>
 
         <div className="sj-section">
@@ -181,24 +121,16 @@ export default function OneOffFinePage() {
             // is what react-stately holds for nothing chosen.
             value={QUICK_AMOUNTS.includes(amt) ? String(amt) : null}
             onChange={(next) => dispatch({ type: 'draft/patch', patch: { customAmt: next } })}
-            style={QUICK_ROW}
           >
             {QUICK_AMOUNTS.map((v) => (
-              // The pill classes belong on Radio.Content: that is the <label>
-              // wrapping the input, and the thing you can see and press. Radio
-              // is the field wrapper around it. No Radio.Control and no
-              // Radio.Indicator — the pill is its own indicator, and an empty
-              // 16px circle would be sitting inside it.
-              //
-              // React Aria renders aria-checked, not aria-pressed, so the fill
-              // is driven by data-on, which .sj-pill[data-on='true'] already
-              // has in app.css.
-              <Radio key={v} value={String(v)} style={QUICK_OPTION}>
-                <Radio.Content
-                  className="sj-pill sj-pill--quick"
-                  data-on={amt === v}
-                  style={quickPillStyle}
-                >
+              <Radio key={v} value={String(v)} style={OPTION}>
+                <Radio.Content>
+                  {/* The kit's own selected state. Without Control and
+                      Indicator a Radio.Content is unpainted text — there would
+                      be nothing on screen saying which amount is picked. */}
+                  <Radio.Control>
+                    <Radio.Indicator />
+                  </Radio.Control>
                   ${v}
                 </Radio.Content>
               </Radio>
@@ -215,13 +147,7 @@ export default function OneOffFinePage() {
       </div>
 
       <div className="sj-footer">
-        <Button
-          type="submit"
-          variant="primary"
-          className="btn btn-primary btn-block"
-          style={{ height: 54, fontSize: 17, marginTop: 0 }}
-          isDisabled={!ready}
-        >
+        <Button type="submit" size="lg" fullWidth isDisabled={!ready}>
           {ready ? `Add ${money(amt)} to the jar` : 'Add an amount'}
         </Button>
       </div>

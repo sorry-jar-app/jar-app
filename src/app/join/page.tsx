@@ -16,10 +16,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Jar } from '@/components/Jar';
 import { useStore } from '@/lib/store';
 
-/* HeroUI's .button is h-10 / h-9 above 768px, and .btn sets no height of its
-   own, so a button the design sizes by its padding needs height:auto back. */
-const GHOST: React.CSSProperties = { marginTop: 6, height: 'auto' };
-
 function JoinFlow() {
   const router = useRouter();
   const params = useSearchParams();
@@ -66,9 +62,8 @@ function JoinFlow() {
             That link is missing its code.
           </p>
           <Button
-            className="btn btn-ghost"
             variant="ghost"
-            style={GHOST}
+            style={{ marginTop: 6 }}
             onPress={() => router.replace('/pair')}
           >
             Enter it by hand
@@ -81,14 +76,13 @@ function JoinFlow() {
               role from its own message slots. */}
           <p
             role="alert"
-            style={{ fontSize: 15, marginTop: 18, maxWidth: 260, color: 'var(--color-accent-700)' }}
+            style={{ fontSize: 15, marginTop: 18, maxWidth: 260, color: 'var(--danger)' }}
           >
             {error}
           </p>
           <Button
-            className="btn btn-ghost"
             variant="ghost"
-            style={GHOST}
+            style={{ marginTop: 6 }}
             onPress={() => router.replace('/pair')}
           >
             Try another code

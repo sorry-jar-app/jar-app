@@ -1,37 +1,18 @@
 import type { Metadata, Viewport } from 'next';
-import { Caprasimo, Figtree } from 'next/font/google';
 import { AppShell } from '@/components/AppShell';
 import { StoreProvider } from '@/lib/store';
 import { ServiceWorker } from '@/components/ServiceWorker';
 import './globals.css';
 
-/**
- * Self-hosted through next/font, so the Capacitor build has its type with no
- * network. The CSS variables are what organic.css reads.
- */
-const caprasimo = Caprasimo({
-  weight: '400',
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-caprasimo',
-});
-
-const figtree = Figtree({
-  weight: ['400', '600', '700'],
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-figtree',
-});
-
 export const metadata: Metadata = {
-  title: 'Sorry Jar',
+  title: 'Digi Jar',
   description:
     'A shared jar for the small stuff. Set your rules, log the fines, spend it on something you both like.',
-  applicationName: 'Sorry Jar',
+  applicationName: 'Digi Jar',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
-    title: 'Sorry Jar',
+    title: 'Digi Jar',
     statusBarStyle: 'default',
   },
   icons: {
@@ -50,12 +31,18 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#f7f1e8',
+  themeColor: '#f7f7f8',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-palette="Mulberry" className={`${caprasimo.variable} ${figtree.variable}`}>
+    /*
+      glass-light is the server's guess. The store corrects it on mount from
+      the saved preference, and falls back to the system setting. Written here
+      rather than left blank so the first painted frame is a real theme and not
+      an unstyled one.
+    */
+    <html lang="en" className="light" data-theme="glass-light" suppressHydrationWarning>
       <body>
         <StoreProvider>
           <AppShell>{children}</AppShell>

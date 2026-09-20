@@ -1,12 +1,10 @@
 'use client';
 
-import { Switch } from '@heroui/react';
-import type { CSSProperties, ReactNode } from 'react';
+import { Description, Label, Switch } from '@heroui/react';
+import type { ReactNode } from 'react';
 
 /**
- * The 46x27 track and its knob, on HeroUI's Switch.
- *
- * Two shapes, because the app has two kinds of caller.
+ * A switch, in the two shapes the app has callers for.
  *
  *   <Toggle on={x} />                       the track alone, for a row that
  *                                           already owns its own button
@@ -22,33 +20,15 @@ import type { CSSProperties, ReactNode } from 'react';
  * data-selected, but it has nothing focusable in it, so it is safe inside the
  * row buttons the screens still use. Those rows can move to the row shape one
  * at a time; nothing has to change at once.
+ *
+ * The track, the thumb, the thumb's travel and the focus ring are the theme's.
  */
 
-/* The prototype's geometry. HeroUI's md control is 40x20 with an oval thumb;
-   this app's is 46x27 with a 21px circle, and app.css cannot be edited from
-   here, so the numbers are inline. They beat the class either way. */
-const TRACK: CSSProperties = { width: 46, height: 27, borderRadius: 999, flexShrink: 0 };
-
-const KNOB: CSSProperties = {
-  width: 21,
-  height: 21,
-  borderRadius: '50%',
-  background: 'var(--color-bg)',
-  boxShadow: 'var(--shadow-sm)',
-};
-
-/* THE CONTRAST RULE, the other half of it. HeroUI's switch fills the track
-   from --accent, which the bridge pins to the 600 step because --accent is a
-   surface for cream text. A toggle track carries no text, so it takes the 500
-   step — the handoff is explicit that coins, chart bars and toggle tracks are
-   the 500's whole job. Hover holds the same value: the prototype's track does
-   not lighten under a pointer. */
-const TRACK_COLOURS = {
-  '--switch-control-bg': 'var(--color-neutral-300)',
-  '--switch-control-bg-hover': 'var(--color-neutral-300)',
-  '--switch-control-bg-checked': 'var(--color-accent-500)',
-  '--switch-control-bg-checked-hover': 'var(--color-accent-500)',
-} as CSSProperties;
+const CONTROL = (
+  <Switch.Control>
+    <Switch.Thumb />
+  </Switch.Control>
+);
 
 type Common = { on: boolean };
 
@@ -64,7 +44,6 @@ type Row = Common & {
   onChange: (next: boolean) => void;
   label: ReactNode;
   description?: ReactNode;
-  /** Appended to .sj-toggle-row, not a replacement for it. */
   className?: string;
   isDisabled?: boolean;
 };
@@ -72,18 +51,10 @@ type Row = Common & {
 export function Toggle(props: Decorative | Row) {
   const { on } = props;
 
-  /* The thumb travels on margin, which is what HeroUI animates — 3px at rest,
-     22px across, the prototype's two positions. */
-  const control = (
-    <Switch.Control style={{ ...TRACK, ...TRACK_COLOURS }}>
-      <Switch.Thumb style={{ ...KNOB, marginInlineStart: on ? 22 : 3 }} />
-    </Switch.Control>
-  );
-
   if (props.onChange === undefined) {
     return (
       <Switch isSelected={on} isReadOnly style={{ flexShrink: 0 }}>
-        {control}
+        {CONTROL}
       </Switch>
     );
   }
@@ -91,27 +62,20 @@ export function Toggle(props: Decorative | Row) {
   const { className, description, isDisabled, label, onChange } = props;
 
   return (
-    <Switch isSelected={on} isDisabled={isDisabled} onChange={onChange} style={{ width: '100%' }}>
-      <Switch.Content
-        className={className ? `sj-toggle-row ${className}` : 'sj-toggle-row'}
-        data-on={on}
-        // The row, not the track, is what the eye follows, so the ring stays on
-        // the row — where it is today, on the button this replaces.
-        style={({ isFocusVisible }) =>
-          isFocusVisible
-            ? { outline: '2px solid var(--color-accent)', outlineOffset: 2 }
-            : {}
-        }
-      >
-        <span style={{ flex: 1 }}>
-          <span style={{ fontSize: 15, display: 'block' }}>{label}</span>
-          {description !== undefined && (
-            <span className="text-muted" style={{ fontSize: 12 }}>
-              {description}
-            </span>
-          )}
+    <Switch
+      className={className}
+      isSelected={on}
+      isDisabled={isDisabled}
+      onChange={onChange}
+      style={{ width: '100%' }}
+    >
+      {/* Label left, track right, the width of the screen between them. */}
+      <Switch.Content style={{ width: '100%', justifyContent: 'space-between' }}>
+        <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: 1 }}>
+          <Label>{label}</Label>
+          {description !== undefined && <Description>{description}</Description>}
         </span>
-        {control}
+        {CONTROL}
       </Switch.Content>
     </Switch>
   );

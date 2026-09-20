@@ -8,6 +8,7 @@
  * and no way back into the app at all.
  */
 
+import { Button } from '@heroui/react';
 import { useRouter } from 'next/navigation';
 import { Jar } from '@/components/Jar';
 
@@ -23,14 +24,14 @@ export default function NotFound() {
         Whatever this was, it is not any more.
       </p>
 
-      <button
-        type="button"
-        className="btn btn-primary btn-block"
-        style={{ height: 54, fontSize: 17, marginTop: 26 }}
-        onClick={() => router.replace('/jar')}
+      <Button
+        size="lg"
+        fullWidth
+        style={{ marginTop: 26 }}
+        onPress={() => router.replace('/jar')}
       >
         Back to the jar
-      </button>
+      </Button>
     </div>
   );
 }

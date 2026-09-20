@@ -1,5 +1,5 @@
 /**
- * Sorry Jar — offline shell.
+ * Digi Jar — offline shell.
  *
  * Deliberately small. Navigations are network-first with a cached fallback so
  * a deploy is picked up immediately but the app still opens on a dead train;

@@ -6,8 +6,8 @@
  * The draft lives in the store rather than local state so "Something else"
  * can hand the same who/ruleId over to /log/one-off and back.
  *
- * On HeroUI the three choices are three real widgets rather than three piles
- * of aria-pressed buttons:
+ * The three choices are three real widgets rather than three piles of
+ * aria-pressed buttons:
  *
  *   Who            RadioGroup         (in WhoPicker)
  *   What happened  ListBox            role=listbox / role=option
@@ -17,14 +17,11 @@
  * by the h6 that already sits above it. The screen went from eight tab stops
  * to four.
  *
- * How bad was a ToggleButtonGroup, which is the radiogroup role laid over a
- * toolbar keyboard model: every option tabbable, and arrow keys that move
- * focus without moving selection. The markup promised a pattern it did not
- * implement. RadioGroup is that pattern — one tabbable radio, and a native
- * input behind each pill, so an arrow key picks as well as travels.
+ * Selection is shown the kit's way: ListBox.ItemIndicator on a rule row, and
+ * Radio.Control/Radio.Indicator on a severity. Nothing here paints.
  */
 
-import { Button, Form, ListBox, Radio, RadioGroup } from '@heroui/react';
+import { Button, Description, Form, Label, ListBox, Radio, RadioGroup } from '@heroui/react';
 import { useRouter } from 'next/navigation';
 import { useId } from 'react';
 import { ChevronRightIcon } from '@/components/Icons';
@@ -34,55 +31,18 @@ import { SEVERITIES } from '@/lib/constants';
 import { money, parseAmount } from '@/lib/money';
 import { useStore } from '@/lib/store';
 
-/* .list-box is a padded block that puts 4px between its children and clips
-   overflow. The rule stack is a flush 10px column, and a focus ring on the
-   last row must not be cut off. */
-const RULE_LIST: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 10,
-  padding: 0,
-  overflow: 'visible',
-};
+/* An equal share of the row for each severity, so three options divide the
+   width instead of bunching at the start. Geometry, not decoration. */
+const OPTION: React.CSSProperties = { flex: 1 };
 
-/* .list-box > * + * adds the 4px on top of the gap above. */
-const RULE_ROW: React.CSSProperties = { marginTop: 0 };
+/* The price sits at the far end of the row; the kit's item is a
+   justify-start flex line. */
+const PRICE: React.CSSProperties = { marginInlineStart: 'auto' };
 
-/* The group was an inline-flex row: full width, centred, 8px gap. .radio-group
-   is a column that data-orientation="horizontal" turns into a wrapping row at
-   gap 16, so the gap and the nowrap are said back. Width is not — .radio-group
-   is a block-level flex box and .sj-section stretches it to the same place the
-   old w-fit + w-full landed. */
-const SEV_GROUP: React.CSSProperties = {
-  flexWrap: 'nowrap',
-  alignItems: 'center',
-  gap: 8,
-};
-
-/* organic.css:165 still carries a legacy `.radio` — inline-flex, 8px gap, 14px
-   — from the app's own hand-rolled radios. It is unlayered, so it beats
-   HeroUI's .radio block. Here the field wrapper is not a control, it is the
-   third of the row the pill has to fill, so the flex is stated outright rather
-   than left to whichever of the two wins. */
-const SEV_OPTION: React.CSSProperties = { display: 'flex', flex: 1 };
-
-/* .sj-pill--sev states display, direction, alignment, gap, padding, radius and
-   size, and unlayered app CSS beats @layer components on each of them. That
-   leaves width: .radio__content shrink-wraps, so the pill is told to fill its
-   third — the flex-1 the group's fullWidth used to hand the button.
-
-   The height, radius and white-space that used to sit here went with the
-   button. .toggle-button forced 40px, rounded-3xl and nowrap; .radio__content
-   forces none of the three, so restating them would be noise. */
-const SEV_PILL: React.CSSProperties = { flex: 1 };
-
-/* .sj-pill--rule is a full-width space-between row; .button is a centred,
-   fixed-height, fit-width one. Height and width are the two it cannot take
-   from the class. */
-const ONE_OFF_ROW: React.CSSProperties = { height: 'auto', width: '100%' };
-
-/* .button resizes its svg children to 20px and nudges them with a margin. */
-const CHEVRON: React.CSSProperties = { width: 15, height: 15, margin: 0 };
+/* Label on the left, the One-off hint on the right — the same shape as the
+   rule rows above it. .button centres its content, which is right for every
+   other button in the app and wrong for a row. */
+const ROW: React.CSSProperties = { justifyContent: 'space-between' };
 
 export default function LogFinePage() {
   const router = useRouter();
@@ -135,11 +95,10 @@ export default function LogFinePage() {
             aria-labelledby={whatId}
             // Nothing stops you deleting every rule — rule/delete has no floor
             // and create_jar only seeds three. Without this the list is still a
-            // tab stop: zero children, zero height, and the global
-            // :focus-visible draws a 2px line across the screen under a
-            // heading that now names nothing.
+            // tab stop: zero children, zero height, and a focus ring drawn
+            // across the screen under a heading that now names nothing.
             renderEmptyState={() => (
-              <p className="text-muted" style={{ fontSize: 13, margin: 0 }}>
+              <p className="text-muted" style={{ margin: 0 }}>
                 No rules yet. Something else, then.
               </p>
             )}
@@ -156,41 +115,28 @@ export default function LogFinePage() {
                 dispatch({ type: 'draft/patch', patch: { ruleId: next } });
               }
             }}
-            style={RULE_LIST}
           >
             {state.rules.map((r) => (
-              <ListBox.Item
-                key={r.id}
-                id={r.id}
-                textValue={r.name}
-                className="sj-pill sj-pill--rule sj-row"
-                // HeroUI paints selection from [data-selected]; app.css paints
-                // it from [data-on]. Both are true, only one is styled here.
-                data-on={ruleId === r.id}
-                style={RULE_ROW}
-              >
-                <span>{r.name}</span>
-                <span className="sj-money" style={{ fontSize: 15 }}>
-                  {money(r.price)}
-                </span>
+              // .sj-row is behaviour, not paint: it kills the tap delay and the
+              // iOS long-press callout on a control a thumb lands on all day.
+              <ListBox.Item key={r.id} id={r.id} textValue={r.name} className="sj-row">
+                <Label>{r.name}</Label>
+                <span style={PRICE}>{money(r.price)}</span>
+                {/* The kit shows selection here. .list-box-item leaves
+                    [data-selected] unpainted and reserves the end padding for
+                    this checkmark instead. */}
+                <ListBox.ItemIndicator />
               </ListBox.Item>
             ))}
           </ListBox>
           {/* Not a listbox option: it picks nothing, it leaves for another
               screen. Keeping it outside the list is what stops a rule and a
               route sharing one set of arrow keys. */}
-          <Button
-            className="sj-pill sj-pill--rule sj-row"
-            variant="ghost"
-            style={ONE_OFF_ROW}
-            onPress={goOneOff}
-          >
+          <Button className="sj-row" variant="ghost" fullWidth style={ROW} onPress={goOneOff}>
             <span>Something else</span>
-            <span
-              style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, opacity: 0.7 }}
-            >
+            <span className="text-muted" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               One-off
-              <ChevronRightIcon size={15} style={CHEVRON} />
+              <ChevronRightIcon />
             </span>
           </Button>
         </div>
@@ -214,26 +160,21 @@ export default function LogFinePage() {
               const opt = SEVERITIES.find((s) => s.id === next);
               if (opt) dispatch({ type: 'draft/patch', patch: { sev: opt.id } });
             }}
-            style={SEV_GROUP}
           >
             {SEVERITIES.map((s) => (
-              <Radio key={s.id} value={s.id} style={SEV_OPTION}>
-                {/* Radio.Content is the label wrapped around the hidden input,
-                    so the pill is the label: classes, fill and the whole hit
-                    area belong here. No Control and no Indicator — the pill is
-                    the indicator, and an empty 16px circle would sit inside
-                    it. */}
-                <Radio.Content
-                  className="sj-pill sj-pill--sev"
-                  // HeroUI paints selection from [data-selected]; app.css
-                  // paints it from [data-on]. aria-pressed went with the
-                  // button and app.css has no aria-checked selector.
-                  data-on={sev === s.id}
-                  style={SEV_PILL}
-                >
-                  <span>{s.name}</span>
-                  <span style={{ fontSize: 11, opacity: 0.7 }}>×{s.mult}</span>
+              <Radio key={s.id} value={s.id} style={OPTION}>
+                <Radio.Content>
+                  {/* The kit's own selected state. Without Control and
+                      Indicator a Radio.Content is unpainted text — there would
+                      be nothing on screen saying which severity is picked. */}
+                  <Radio.Control>
+                    <Radio.Indicator />
+                  </Radio.Control>
+                  {s.name}
                 </Radio.Content>
+                {/* A sibling of Content, which is how the kit wires a per-radio
+                    description into aria-describedby. */}
+                <Description>×{s.mult}</Description>
               </Radio>
             ))}
           </RadioGroup>
@@ -245,13 +186,7 @@ export default function LogFinePage() {
       </div>
 
       <div className="sj-footer">
-        <Button
-          type="submit"
-          variant="primary"
-          className="btn btn-primary btn-block"
-          style={{ height: 54, fontSize: 17, marginTop: 0 }}
-          isDisabled={!ready}
-        >
+        <Button type="submit" size="lg" fullWidth isDisabled={!ready}>
           {ready ? `Add ${money(pending)} to the jar` : 'Pick who and what'}
         </Button>
       </div>

@@ -14,10 +14,10 @@
  * The destinations were four `aria-pressed` buttons, which is single-select
  * wearing a toggle's clothes: four tab stops, no arrow keys, and no group to
  * belong to. They are a real RadioGroup now, named by the "Where's it going"
- * heading. One tab stop, arrows between the four, the same rows on screen.
+ * heading: one tab stop, arrows between the four, and the kit draws the rows.
  */
 
-import { Button, Radio, RadioGroup } from '@heroui/react';
+import { Button, Description, Radio, RadioGroup } from '@heroui/react';
 import { startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -68,61 +68,22 @@ export default function CashOutPage() {
           </h6>
           <RadioGroup
             aria-labelledby="cashout-dest"
-            style={{ gap: 9 }}
             value={state.dest}
             onChange={(dest) => dispatch({ type: 'dest/set', dest })}
           >
-            {DESTINATIONS.map((d) => {
-              const on = state.dest === d.id;
-              return (
-                <Radio
-                  key={d.id}
-                  value={d.id}
-                  // HeroUI spaces a vertical group with margin-top on each
-                  // item; this one is spaced by the group's own gap.
-                  style={{ marginTop: 0 }}
-                >
-                  <Radio.Content
-                    className="sj-surface-row"
-                    // Three things the class cannot say. `.radio__content`
-                    // inherits its cursor and a <label> has none to inherit;
-                    // the selected fill is conditional; and the focus ring
-                    // belongs on the row, where it was on the button this
-                    // replaces, not on the 18px control HeroUI would ring.
-                    style={({ isFocusVisible }) => ({
-                      cursor: 'pointer',
-                      ...(on
-                        ? {
-                            background: 'var(--color-accent-100)',
-                            borderColor: 'var(--color-accent)',
-                          }
-                        : null),
-                      ...(isFocusVisible
-                        ? { outline: '2px solid var(--color-accent)', outlineOffset: 2 }
-                        : null),
-                    })}
-                  >
-                    {/* .sj-radio draws the whole control — the 18px ring and,
-                        at data-on, the accent fill with the inset cutout. No
-                        Radio.Indicator, because a second dot would land inside
-                        it. The unselected box-shadow is stated so HeroUI's
-                        field shadow and focus ring do not draw on a control
-                        the design keeps flat; the ring is on the row. */}
-                    <Radio.Control
-                      className="sj-radio"
-                      data-on={on ? 'true' : undefined}
-                      style={on ? undefined : { boxShadow: 'none' }}
-                    />
-                    <span style={{ flex: 1 }}>
-                      <span style={{ fontSize: 15, display: 'block' }}>{d.name}</span>
-                      <span className="text-muted" style={{ fontSize: 12 }}>
-                        {d.note}
-                      </span>
-                    </span>
-                  </Radio.Content>
-                </Radio>
-              );
-            })}
+            {DESTINATIONS.map((d) => (
+              <Radio key={d.id} value={d.id}>
+                <Radio.Content>
+                  <Radio.Control>
+                    <Radio.Indicator />
+                  </Radio.Control>
+                  <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    {d.name}
+                    <Description>{d.note}</Description>
+                  </span>
+                </Radio.Content>
+              </Radio>
+            ))}
           </RadioGroup>
         </div>
       </div>
@@ -131,13 +92,7 @@ export default function CashOutPage() {
         {/* aria-disabled, not isDisabled: an empty jar should still let you
             reach the button and read why nothing happens. handleCashOut
             refuses on its own. */}
-        <Button
-          className="btn btn-primary btn-block"
-          variant="primary"
-          style={{ height: 54, fontSize: 17, marginTop: 0 }}
-          aria-disabled={empty}
-          onPress={handleCashOut}
-        >
+        <Button size="lg" fullWidth aria-disabled={empty} onPress={handleCashOut}>
           {empty
             ? 'Nothing in the jar'
             : state.mystery

@@ -11,9 +11,9 @@ import { ChevronLeftIcon } from './Icons';
  * handoff specifies — One-off goes back to Log, Rule detail back to Rules —
  * no matter how the screen was reached.
  *
- * The button is HeroUI's, wearing the app's .btn classes: onPress handles
- * touch, pen and keyboard as one thing and cancels cleanly when a press turns
- * into a scroll, which is the bug a plain onClick has on a phone.
+ * onPress rather than onClick: it handles touch, pen and keyboard as one thing
+ * and cancels cleanly when a press turns into a scroll, which is the bug a
+ * plain onClick has on a phone.
  */
 export function ScreenHeader({
   title,
@@ -28,16 +28,8 @@ export function ScreenHeader({
 
   return (
     <div className={tight ? 'sj-header sj-header--tight' : 'sj-header'}>
-      <Button
-        className="btn btn-icon btn-secondary"
-        variant="ghost"
-        isIconOnly
-        aria-label="Back"
-        onPress={() => router.push(backTo)}
-      >
-        {/* .button sizes its own svg children at 20px, and 16px above 640.
-            The glyph is 17px here, as it is everywhere else in the app. */}
-        <ChevronLeftIcon style={{ width: 17, height: 17, margin: 0 }} />
+      <Button variant="ghost" isIconOnly aria-label="Back" onPress={() => router.push(backTo)}>
+        <ChevronLeftIcon />
       </Button>
       <span className="sj-title">{title}</span>
     </div>

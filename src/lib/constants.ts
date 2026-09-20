@@ -1,4 +1,4 @@
-import type { Destination, Fine, PaletteName, Rule, SeverityOption } from './types';
+import type { Destination, Fine, Rule, SeverityOption, ThemeMode } from './types';
 
 export const SEVERITIES: SeverityOption[] = [
   { id: 'mild', name: 'Mild', mult: 1 },
@@ -21,7 +21,12 @@ export const DESTINATIONS: Destination[] = [
 
 export const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 
-export const PALETTE_NAMES: PaletteName[] = ['Mulberry', 'Pine', 'Ink', 'Terracotta'];
+/** Light, dark, or whatever the phone is doing. */
+export const THEME_MODES: { id: ThemeMode; name: string }[] = [
+  { id: 'light', name: 'Light' },
+  { id: 'dark', name: 'Dark' },
+  { id: 'system', name: 'System' },
+];
 
 /**
  * Coin slots in the jar's 200x250 viewBox: [cx, cy, r], stacked bottom-up.
@@ -40,14 +45,21 @@ export const COIN_CAP = COIN_SLOTS.length;
 /** The floor a cash-out or an undo drops the jar back to. */
 export const COIN_FLOOR = 3;
 
+/**
+ * The coins, alternating between the two people's hues.
+ *
+ * Mixed against the surface rather than taken from a ramp, so the pile reads
+ * the same in light and dark without a second set of values — and so a change
+ * of theme carries the jar with it instead of leaving it behind.
+ */
 export const COIN_FILLS = [
-  'var(--color-accent-400)',
-  'var(--color-accent-2-400)',
-  'var(--color-accent-300)',
-  'var(--color-neutral-400)',
-  'var(--color-accent-500)',
-  'var(--color-accent-2-300)',
-  'var(--color-accent-2-500)',
+  'var(--who-a)',
+  'var(--who-s)',
+  'color-mix(in srgb, var(--who-a) 62%, var(--surface))',
+  'color-mix(in srgb, var(--foreground) 22%, var(--surface))',
+  'color-mix(in srgb, var(--who-a) 80%, var(--surface))',
+  'color-mix(in srgb, var(--who-s) 55%, var(--surface))',
+  'color-mix(in srgb, var(--who-s) 80%, var(--surface))',
 ];
 
 /** The jar body silhouette, shared by the hero SVG and the Jar tab glyph. */

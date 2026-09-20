@@ -14,9 +14,6 @@
  *
  * On HeroUI: TextField wires the Label to the Input itself, so the htmlFor/id
  * pair is gone and the ids only stay because external selectors may want them.
- * `.field` rides along on the TextField so `.field > label` still styles the
- * label; gap 0 because HeroUI's .textfield adds its own 4px on top of the
- * label's 5px margin.
  */
 
 import { Button, Input, Label, TextField } from '@heroui/react';
@@ -53,25 +50,13 @@ export default function SetupPage() {
         {/* Two placements that are not interchangeable: `id` goes on the
             TextField, which is what the generated <label for> points at, and
             `autoFocus` goes on the Input, where the TextField swallows it. */}
-        <TextField className="field" id="setup-me" style={{ gap: 0 }} value={me} onChange={setMe}>
+        <TextField id="setup-me" value={me} onChange={setMe}>
           <Label>You</Label>
-          <Input
-            style={{ height: 44 }}
-            placeholder={NAME_FALLBACK_ME}
-            autoComplete="given-name"
-            autoFocus
-          />
+          <Input placeholder={NAME_FALLBACK_ME} autoComplete="given-name" autoFocus />
         </TextField>
-        <TextField
-          className="field"
-          id="setup-partner"
-          style={{ gap: 0 }}
-          value={partner}
-          onChange={setPartner}
-        >
+        <TextField id="setup-partner" value={partner} onChange={setPartner}>
           <Label>Them</Label>
           <Input
-            style={{ height: 44 }}
             placeholder={NAME_FALLBACK_PARTNER}
             autoComplete="off"
             onKeyDown={(e) => {
@@ -83,12 +68,7 @@ export default function SetupPage() {
 
       <div style={{ flex: 1 }} />
 
-      <Button
-        className="btn btn-primary btn-block"
-        variant="primary"
-        style={{ height: 54, fontSize: 17, marginTop: 0 }}
-        onPress={go}
-      >
+      <Button size="lg" fullWidth onPress={go}>
         Next
       </Button>
     </div>

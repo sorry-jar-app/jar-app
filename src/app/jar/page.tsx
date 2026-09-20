@@ -24,12 +24,11 @@ import { useTilt } from '@/lib/useTilt';
  * it a discoverable, permission-free path on every platform and doubles as the
  * user gesture iOS insists on before it will hand over motion events.
  *
- * The controls are HeroUI's, wearing the app's .btn classes. Those classes
- * load after HeroUI's stylesheet and win at equal specificity, so the geometry
- * is the one Organic specifies and HeroUI supplies the behaviour: onPress,
- * which cancels cleanly when a press turns into a scroll. Two places need an
- * inline override because HeroUI outranks a single class there — .button sizes
- * its own svg children, and it pins a height the ghost row does not want.
+ * The controls are the kit's, dressed by the kit: `variant` and `size` say
+ * what a button is for and the theme decides what that looks like. Nothing on
+ * this screen paints a HeroUI component or pins its height, and the glyphs are
+ * sized by .button rather than by hand. The only inline styles left are the
+ * frame the screen is built on.
  *
  * The jar itself stays a plain button. It is the artwork, not a control.
  */
@@ -64,27 +63,23 @@ export default function HomePage() {
   return (
     <div className="sj-screen sj-screen--tabbed">
       <div className="sj-header sj-header--home">
-        <span className="sj-title">Sorry Jar</span>
+        <span className="sj-title">Digi Jar</span>
         <div style={{ display: 'flex', gap: 6 }}>
           <Button
-            className="btn btn-icon btn-secondary"
             variant="ghost"
             isIconOnly
             aria-label="Notifications"
             onPress={() => router.push('/notifications')}
           >
-            {/* .button sizes its own svg children at 20px, and 16px above 640.
-                The glyph is 17px here, as it is everywhere else in the app. */}
-            <BellIcon style={{ width: 17, height: 17, margin: 0 }} />
+            <BellIcon />
           </Button>
           <Button
-            className="btn btn-icon btn-secondary"
             variant="ghost"
             isIconOnly
             aria-label="Settings"
             onPress={() => router.push('/settings')}
           >
-            <GearIcon style={{ width: 17, height: 17, margin: 0 }} />
+            <GearIcon />
           </Button>
         </div>
       </div>
@@ -117,14 +112,11 @@ export default function HomePage() {
           />
         </button>
 
-        <div
-          className="sj-money"
-          style={{ fontSize: 52, lineHeight: 1, letterSpacing: '-0.02em', marginTop: 6 }}
-        >
+        <div className="sj-money" style={{ marginTop: 6 }}>
           {veil(total, sealed)}
         </div>
 
-        <div className="text-muted" style={{ fontSize: 13 }}>
+        <div className="text-muted text-sm">
           {sealed
             ? `${state.fines.length} fines in, total sealed`
             : `${state.fines.length} fines since ${started}`}
@@ -134,33 +126,15 @@ export default function HomePage() {
           {/* The only read of `mystery` rather than `sealed`: the button stays
               put mid-reveal, it just changes its label. */}
           {state.mystery && (
-            <Button
-              className="btn btn-ghost"
-              variant="ghost"
-              // .button is h-10, and h-9 on a viewport past 768 — which fires
-              // on a desktop even though the frame is 430px wide. These are
-              // text links; the padding sizes them.
-              style={{ fontSize: 13, gap: 7, height: 'auto' }}
-              onPress={peek}
-            >
-              <EyeIcon style={{ width: 15, height: 15, margin: 0 }} />
+            <Button variant="ghost" size="sm" onPress={peek}>
+              <EyeIcon />
               {peeking ? 'Hiding again…' : 'Peek'}
             </Button>
           )}
-          <Button
-            className="btn btn-ghost"
-            variant="ghost"
-            style={{ fontSize: 13, height: 'auto' }}
-            onPress={() => router.push('/games')}
-          >
+          <Button variant="ghost" size="sm" onPress={() => router.push('/games')}>
             Games
           </Button>
-          <Button
-            className="btn btn-ghost"
-            variant="ghost"
-            style={{ fontSize: 13, height: 'auto' }}
-            onPress={() => router.push('/cash-out')}
-          >
+          <Button variant="ghost" size="sm" onPress={() => router.push('/cash-out')}>
             Spend the jar →
           </Button>
         </div>
@@ -169,14 +143,13 @@ export default function HomePage() {
       <div
         style={{ padding: '0 24px 6px', display: 'flex', flexDirection: 'column', gap: 9 }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+        <div className="text-sm" style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span>
-            <strong style={{ fontWeight: 700 }}>{state.me}</strong>{' '}
-            <span className="text-muted">{veil(meTotal, sealed)}</span>
+            <strong>{state.me}</strong> <span className="text-muted">{veil(meTotal, sealed)}</span>
           </span>
           <span>
             <span className="text-muted">{veil(partnerTotal, sealed)}</span>{' '}
-            <strong style={{ fontWeight: 700 }}>{state.partner}</strong>
+            <strong>{state.partner}</strong>
           </span>
         </div>
         {/*
@@ -185,19 +158,22 @@ export default function HomePage() {
           construction. Two divs said the same thing to the eye and nothing at
           all to a screen reader; this says it to both.
 
-          Colours are the 500 steps of each ramp. That is the contrast rule
-          working as intended, not against it: nothing is written on this bar,
-          so it is a non-text fill and 500 is the step for those. HeroUI's own
-          --accent is the 600 step, which is why the fill is painted here.
+          Both halves are painted, and neither comes from a theme semantic.
+          --who-a and --who-s are the two people, and the kit has no prop for
+          "the empty half means someone too". Taking the fill from `color`
+          instead would hand A whatever --accent happens to be — near-white in
+          dark mode, which puts a blank bar where a person should be.
 
-          Sealed, the bar is forced to an even 50/50 and drops to the 300 steps.
-          The 50 is a decoy, so `valueLabel` speaks instead of it: a screen
-          reader hears "Sealed" where it would otherwise hear a number that is
-          not true. Masking that holds for the eye and leaks to the ear is not
-          masking.
+          Sealed, the bar drops to the kit's neutral and is forced to an even
+          50/50. The 50 is a decoy, so `valueLabel` speaks instead of it: a
+          screen reader hears "sealed" where it would otherwise hear a number
+          that is not true. Masking that holds for the eye and leaks to the ear
+          is not masking.
         */}
         <Meter
           aria-label={`${state.me}'s share of the jar`}
+          size="lg"
+          color={sealed ? 'default' : undefined}
           value={sealed ? 50 : meShare}
           // 50 is the visual default for "nothing to split" and must stay, or
           // the bar goes lopsided on an empty jar. But the old markup was two
@@ -205,38 +181,16 @@ export default function HomePage() {
           // assertion, and "Nick's share of the jar, 50 percent" directly
           // contradicts the "0 fines since ..." line above it.
           valueLabel={sealed ? 'sealed' : total ? undefined : 'Nothing in the jar'}
-          // .meter is a two-row grid, label over track, with a 4px gap it does
-          // not need here — there is no label row to separate.
-          style={{ gap: 0 }}
         >
-          <Meter.Track
-            style={{
-              height: 12,
-              borderRadius: 999,
-              background: sealed ? 'var(--color-accent-2-300)' : 'var(--color-accent-2-500)',
-            }}
-          >
-            {/* Square, so the two shares butt flat against each other; the
-                track's own overflow clip rounds the outer ends. */}
-            <Meter.Fill
-              style={{
-                borderRadius: 0,
-                background: sealed ? 'var(--color-accent-300)' : 'var(--color-accent-500)',
-              }}
-            />
+          <Meter.Track style={sealed ? undefined : { background: 'var(--who-s)' }}>
+            <Meter.Fill style={sealed ? undefined : { background: 'var(--who-a)' }} />
           </Meter.Track>
         </Meter>
       </div>
 
       <div style={{ padding: '14px 24px 0' }}>
-        <Button
-          className="btn btn-primary btn-block"
-          variant="primary"
-          fullWidth
-          style={{ height: 56, fontSize: 17, gap: 9, marginTop: 0 }}
-          onPress={() => router.push('/log')}
-        >
-          <PlusIcon style={{ width: 19, height: 19, margin: 0 }} />
+        <Button size="lg" fullWidth onPress={() => router.push('/log')}>
+          <PlusIcon />
           Log a fine
         </Button>
       </div>

@@ -56,7 +56,7 @@ import type { JarContext } from './supabase/api';
 import type {
   Fine,
   NotificationPrefs,
-  PaletteName,
+  ThemeMode,
   Person,
   Rule,
   Severity,
@@ -90,7 +90,7 @@ export type State = {
   totalEver: number;
   notif: NotificationPrefs;
   mystery: boolean;
-  palette: PaletteName;
+  mode: ThemeMode;
   /** True once the pair step has been passed, either way. */
   onboarded: boolean;
   /** ISO date this jar was started, set when onboarding finishes. '' until then. */
@@ -132,7 +132,7 @@ const INITIAL: State = {
   totalEver: 0,
   notif: { fined: true, selfFined: true, milestone: true },
   mystery: false,
-  palette: 'Mulberry',
+  mode: 'system',
   onboarded: false,
   startedOn: '',
 
@@ -156,7 +156,7 @@ type Persisted = Pick<
   | 'totalEver'
   | 'notif'
   | 'mystery'
-  | 'palette'
+  | 'mode'
   | 'onboarded'
   | 'startedOn'
 >;
@@ -171,7 +171,7 @@ function persistedOf(s: State): Persisted {
     totalEver: s.totalEver,
     notif: s.notif,
     mystery: s.mystery,
-    palette: s.palette,
+    mode: s.mode,
     onboarded: s.onboarded,
     startedOn: s.startedOn,
   };
@@ -182,7 +182,7 @@ function persistedOf(s: State): Persisted {
 export type Action =
   | { type: 'hydrate'; payload: Partial<Persisted> }
   | { type: 'setName'; person: Person; name: string }
-  | { type: 'setPalette'; palette: PaletteName }
+  | { type: 'setMode'; mode: ThemeMode }
   | { type: 'setOnboarded'; at: string }
   | { type: 'draft/patch'; patch: Partial<Draft> }
   | { type: 'draft/reset' }
@@ -305,8 +305,8 @@ export function reducer(state: State, action: Action): State {
         : { ...state, partner: name || NAME_FALLBACK_PARTNER };
     }
 
-    case 'setPalette':
-      return { ...state, palette: action.palette };
+    case 'setMode':
+      return { ...state, mode: action.mode };
 
     case 'setOnboarded':
       // First time through only: re-passing the pair screen should not reset
@@ -435,7 +435,6 @@ export function reducer(state: State, action: Action): State {
         fines,
         totalEver: jar.totalEver,
         mystery: jar.mystery,
-        palette: jar.palette,
         notif: jar.notif,
         onboarded: true,
         startedOn: jar.startedOn,
@@ -460,7 +459,7 @@ export function reducer(state: State, action: Action): State {
       // Only ever a demo affordance. With a real jar the database is the
       // record, and refilling the screen with seed fines would just lie.
       if (state.jar) return state;
-      return { ...INITIAL, palette: state.palette, onboarded: true };
+      return { ...INITIAL, mode: state.mode, onboarded: true };
 
     default:
       return state;
@@ -541,9 +540,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     saveState(persistedOf(state));
   }, [state, hydrated, remote]);
 
+  /**
+    * The theme, on the document.
+    *
+    * 'system' is not a value the stylesheet understands, so it is resolved
+    * here and re-resolved whenever the OS setting moves — someone who has
+    * never opened Settings still follows their phone at sunset.
+    */
   useEffect(() => {
-    document.documentElement.setAttribute('data-palette', state.palette);
-  }, [state.palette]);
+    const root = document.documentElement;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const apply = () => {
+      const dark = state.mode === 'dark' || (state.mode === 'system' && mq.matches);
+      root.setAttribute('data-theme', dark ? 'glass-dark' : 'glass-light');
+      // Both, not one. HeroUI splits its dark mode in two: the base semantic
+      // colours hang off `.dark`, and a Pro theme's own block off the
+      // attribute. With only the attribute, --background flips to near-black
+      // while --foreground stays near-black with it, and the whole app renders
+      // as invisible text on its own colour.
+      root.classList.toggle('dark', dark);
+      root.classList.toggle('light', !dark);
+    };
+    apply();
+    if (state.mode !== 'system') return;
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, [state.mode]);
 
   /* ── auth ─────────────────────────────────────────────────────────────── */
 
@@ -751,8 +773,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         case 'mystery/toggle':
           setMemberSettings(sb, jar.jarId, jar.meId, { mystery: !prev.mystery }).catch(fail);
           break;
-        case 'setPalette':
-          setMemberSettings(sb, jar.jarId, jar.meId, { palette: applied.palette }).catch(fail);
+        case 'setMode':
+          // Per-device on purpose. One of you wanting dark says nothing about
+          // the other, so this is the one setting that does not sync.
           break;
         case 'notif/toggle': {
           const column =

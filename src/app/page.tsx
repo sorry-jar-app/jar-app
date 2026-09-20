@@ -13,10 +13,9 @@
  * This is also the gate: anyone who has already been through pairing — either
  * by finishing it or by skipping it — goes straight to the jar instead.
  *
- * Both buttons are HeroUI's in the app's .btn clothes. The second one is a
- * ghost, not a secondary: HeroUI's secondary variant paints a neutral fill,
- * and this button is a hairline border on the page. Ghost is the transparent
- * one; .btn-secondary supplies the border.
+ * Both buttons are the kit's, in the kit's own clothes: the primary is the
+ * default variant, the second is `secondary`, and the theme decides what each
+ * of those looks like. The jar wears its own colours from artwork.css.
  */
 
 import { useEffect } from 'react';
@@ -42,18 +41,13 @@ export default function WelcomePage() {
 
   return (
     <div className="sj-screen sj-screen--centered">
-      <Jar
-        width={176}
-        height={220}
-        coins={3}
-        fill="var(--color-accent-100)"
-        fillOpacity={0.6}
-        highlightOpacity={0.55}
-      />
+      <Jar width={176} height={220} coins={3} />
 
-      <h1 style={{ fontSize: 40, margin: '14px 0 8px' }}>Sorry Jar</h1>
+      <h1 className="text-4xl font-bold tracking-tight" style={{ margin: '14px 0 8px' }}>
+        Digi Jar
+      </h1>
 
-      <p className="text-muted" style={{ fontSize: 15, maxWidth: 270, textWrap: 'pretty' }}>
+      <p className="text-muted" style={{ maxWidth: 270, textWrap: 'pretty' }}>
         A shared jar for the small stuff. Set your rules, log the fines, spend it on something you
         both like.
       </p>
@@ -61,22 +55,10 @@ export default function WelcomePage() {
       <div
         style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', marginTop: 22 }}
       >
-        <Button
-          className="btn btn-primary btn-block"
-          variant="primary"
-          fullWidth
-          style={{ height: 54, fontSize: 17, marginTop: 0 }}
-          onPress={startJar}
-        >
+        <Button size="lg" fullWidth onPress={startJar}>
           Start a jar
         </Button>
-        <Button
-          className="btn btn-secondary btn-block"
-          variant="ghost"
-          fullWidth
-          style={{ height: 50, fontSize: 15, marginTop: 0 }}
-          onPress={joinJar}
-        >
+        <Button variant="secondary" size="lg" fullWidth onPress={joinJar}>
           I have an invite code
         </Button>
       </div>

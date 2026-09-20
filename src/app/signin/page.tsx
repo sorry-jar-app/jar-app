@@ -108,12 +108,7 @@ export default function SignInPage() {
 
           <div style={{ flex: 1 }} />
 
-          <Button
-            className="btn btn-ghost btn-block"
-            variant="ghost"
-            style={{ height: 46 }}
-            onPress={() => router.push('/pair')}
-          >
+          <Button variant="ghost" fullWidth onPress={() => router.push('/pair')}>
             Never mind
           </Button>
         </div>
@@ -140,9 +135,8 @@ export default function SignInPage() {
             <div style={{ flex: 1 }} />
 
             <Button
-              className="btn btn-ghost btn-block"
               variant="ghost"
-              style={{ height: 46 }}
+              fullWidth
               onPress={() => {
                 setSentTo(null);
                 setError(null);
@@ -168,16 +162,14 @@ export default function SignInPage() {
                 request, not the address — "One just went out" is not a reason
                 to mark the field wrong. */}
             <TextField
-              className="field"
               id="signin-email"
-              style={{ marginTop: 26, gap: 0 }}
+              style={{ marginTop: 26 }}
               type="email"
               value={email}
               onChange={setEmail}
             >
               <Label>Email</Label>
               <Input
-                style={{ height: 44 }}
                 inputMode="email"
                 autoComplete="email"
                 autoCapitalize="none"
@@ -192,7 +184,7 @@ export default function SignInPage() {
             {error ? (
               <p
                 role="alert"
-                style={{ fontSize: 13, margin: '0 0 10px', color: 'var(--color-accent-700)' }}
+                style={{ fontSize: 13, margin: '0 0 10px', color: 'var(--danger)' }}
               >
                 {error}
               </p>
@@ -205,9 +197,8 @@ export default function SignInPage() {
                 no-op. */}
             <Button
               type="submit"
-              className="btn btn-primary btn-block"
-              variant="primary"
-              style={{ height: 54, fontSize: 17, marginTop: 0 }}
+              size="lg"
+              fullWidth
               aria-disabled={!sendable}
               aria-busy={sending}
             >
