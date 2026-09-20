@@ -165,6 +165,13 @@ export default function SettingsPage() {
           >
             {THEME_MODES.map((mode) => (
               <Radio key={mode.id} value={mode.id}>
+                {/* Control and Indicator, like every other RadioGroup in the
+                    app. Without them .radio__content has no selected styling
+                    of its own and this group showed three bare words with no
+                    way to tell which one was on. */}
+                <Radio.Control>
+                  <Radio.Indicator />
+                </Radio.Control>
                 <Radio.Content>{mode.name}</Radio.Content>
               </Radio>
             ))}
@@ -174,7 +181,7 @@ export default function SettingsPage() {
         {waiting ? (
           <Button variant="secondary" fullWidth onPress={() => router.push('/pair')}>
             <StatusDot tone="waiting" />
-            <span style={{ flex: 1, minWidth: 0 }}>Waiting for {state.partner} to join</span>
+            <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>Waiting for {state.partner} to join</span>
             <ChevronRightIcon />
           </Button>
         ) : (
@@ -183,7 +190,7 @@ export default function SettingsPage() {
               style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
             >
               <StatusDot tone="paired" />
-              <span className="text-sm" style={{ flex: 1, minWidth: 0 }}>
+              <span className="text-sm" style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                 Paired with {state.partner}
               </span>
               <Chip>
@@ -211,7 +218,7 @@ export default function SettingsPage() {
                   key={row.label}
                   style={{ display: 'flex', alignItems: 'center', gap: 12 }}
                 >
-                  <span className="text-sm" style={{ flex: 1, minWidth: 0 }}>
+                  <span className="text-sm" style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                     {row.label}
                   </span>
                   <span className="text-sm text-muted">{row.value}</span>
@@ -221,7 +228,7 @@ export default function SettingsPage() {
           </Card>
 
           <Button variant="secondary" fullWidth onPress={() => router.push('/cash-out')}>
-            <span style={{ flex: 1, minWidth: 0 }}>Spend the jar</span>
+            <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>Spend the jar</span>
             <ChevronRightIcon />
           </Button>
 
@@ -237,7 +244,7 @@ export default function SettingsPage() {
             )}
             onPress={exportHistory}
           >
-            <span style={{ flex: 1, minWidth: 0 }}>Export history</span>
+            <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>Export history</span>
             <span className="text-muted">{exporting ? 'Gathering…' : 'CSV'}</span>
             <ChevronRightIcon />
           </Button>
@@ -264,7 +271,7 @@ export default function SettingsPage() {
                   <Card.Content
                     style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
                   >
-                    <span className="text-sm" style={{ flex: 1, minWidth: 0 }}>
+                    <span className="text-sm" style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                       Signed in
                     </span>
                     <span
@@ -302,7 +309,7 @@ export default function SettingsPage() {
               </>
             ) : (
               <Button variant="secondary" fullWidth onPress={() => router.push('/signin')}>
-                <span style={{ flex: 1, minWidth: 0 }}>Sign in</span>
+                <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>Sign in</span>
                 <span className="text-muted">Makes the jar a real one</span>
                 <ChevronRightIcon />
               </Button>

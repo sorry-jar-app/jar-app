@@ -7,8 +7,14 @@ import { fromSlots, kick, step, wake, type Coin } from '@/lib/coinTumble';
 import { prefersReducedMotion } from '@/lib/reducedMotion';
 
 type JarProps = {
-  width: number;
-  height: number;
+  /**
+   * Leave both off to let CSS size it — which is what .sj-field does, and what
+   * the jar screen and the games want: the drawing then fills whatever the
+   * screen has left instead of a number picked when the layout was fixed.
+   * Pass them only where the jar is an inline mark at a known size.
+   */
+  width?: number;
+  height?: number;
   coins: number;
   /** Run coinDrop on the newest coin. */
   animateLast?: boolean;
@@ -178,6 +184,9 @@ export function Jar({
       style={{
         width,
         height,
+        // Only meaningful when width/height are unset, i.e. CSS is sizing it.
+        maxWidth: '100%',
+        maxHeight: '100%',
         display: 'block',
         animation: nudge ? 'jarNudge .6s ease .35s both' : undefined,
       }}
