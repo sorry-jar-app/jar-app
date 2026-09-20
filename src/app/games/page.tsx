@@ -57,6 +57,19 @@ export default function GamesPage() {
   const total = sumFines(state.fines);
   const lives = livesFrom(state.coins);
 
+  /**
+   * The lives count rides ON the row, not in the closure around it.
+   *
+   * React Aria's collections memoise a rendered row against its item, and the
+   * render function is not re-run for a row whose item is unchanged. `lives`
+   * read from the enclosing scope therefore froze at whatever it was on the
+   * first pass — which is 1, because the store hydrates from localStorage in
+   * an effect, after that pass. The result was Roll showing "1 life" beside
+   * Breaker showing "7 lives", on one jar, from one variable.
+   */
+  const withLives = (list: typeof GAMES) =>
+    list.map((g) => ({ ...g, lives: g.usesLives ? lives : null }));
+
   // The catalogue is ordered by price of entry and a jar has one total, so
   // "open" is a prefix of the list and "locked" is the rest. Splitting it in
   // two therefore keeps the catalogue's own order on screen.
@@ -80,7 +93,7 @@ export default function GamesPage() {
             booting the app again to reach the next screen. */}
         <ListView
           aria-label="Games you can play"
-          items={unlocked}
+          items={withLives(unlocked)}
           onAction={(key) => router.push(String(key))}
           // Unreachable while Roll is free, and the kit still needs it: an
           // empty GridList otherwise renders a focusable zero-height grid that
@@ -104,14 +117,19 @@ export default function GamesPage() {
                   style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}
                 >
                   <ListView.Title>{game.name}</ListView.Title>
-                  <ListView.Description>{game.note}</ListView.Description>
+                  {/* .list-view__description ships `truncate`, which cut
+                      "A coin, a paddle, and a wall in the ..." mid-sentence.
+                      These notes are one short line and the row can hold it. */}
+                  <ListView.Description style={{ overflow: 'visible', whiteSpace: 'normal' }}>
+                    {game.note}
+                  </ListView.Description>
                 </span>
               </ListView.ItemContent>
               <ListView.ItemAction className="flex items-center gap-2">
-                {game.usesLives && (
+                {game.lives !== null && (
                   <Chip size="sm">
                     <Chip.Label>
-                      {lives} {lives === 1 ? 'life' : 'lives'}
+                      {game.lives} {game.lives === 1 ? 'life' : 'lives'}
                     </Chip.Label>
                   </Chip>
                 )}
