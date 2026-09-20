@@ -83,8 +83,18 @@ function pick(lines: string[]): string {
   return lines[Math.floor(Math.random() * lines.length)];
 }
 
+/**
+ * What a ball is painted with. The table and the status dot both read this, so
+ * the dot beside "Stripes, 4 left." cannot drift away from the stripes on the
+ * cloth — which it had, to a darker, more saturated sage than anything in play.
+ */
+const BALL_FILL = {
+  solid: { body: 'var(--color-accent-500)', band: 'var(--color-accent-700)' },
+  stripe: { body: 'var(--color-accent-2-300)', band: 'var(--color-accent-2-700)' },
+} as const;
+
 function groupFill(group: Group): string {
-  return group === 'solid' ? 'var(--color-accent-500)' : 'var(--color-accent-2-500)';
+  return BALL_FILL[group].body;
 }
 
 type Phase = 'aiming' | 'rolling' | 'over';
@@ -117,6 +127,17 @@ function EightBallScreen() {
   });
   /** Only for the screen reader — the live aim is a ref, painted by hand. */
   const [shownAim, setShownAim] = useState({ angle: -Math.PI / 2, power: 0.55 });
+  /**
+   * The aim, announced.
+   *
+   * aria-describedby is read when the control takes focus, not when its text
+   * changes, so arrowing the cue eleven times to the right said nothing at all
+   * — and the dotted line and the power bar are the only other channel, both of
+   * them visual. Separate from `shownAim` so it only speaks for the keyboard,
+   * and debounced so a held arrow does not flood the queue.
+   */
+  const [spokenAim, setSpokenAim] = useState('');
+  const aimByKey = useRef(false);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
   const ballNodes = useRef<(SVGGElement | null)[]>([]);
@@ -127,6 +148,8 @@ function EightBallScreen() {
   const aim = useRef({ angle: -Math.PI / 2, power: 0.55 });
   const beforeShot = useRef<Ball[]>(snapshot(balls));
   const dragging = useRef(false);
+  /** Held for the length of a shot, animated or not. See fire(). */
+  const firing = useRef(false);
   /** A pointer strike also produces a click. One shot per release, not two. */
   const swallowClick = useRef(false);
   const sayNo = useRef(0);
@@ -194,11 +217,50 @@ function EightBallScreen() {
     paint();
   }, [paint, rackNo, phase]);
 
+  // Speaks only for the keyboard, and only once the arrows have stopped — a
+  // shot resolving also moves shownAim, and that must not talk over the result.
+  useEffect(() => {
+    if (!aimByKey.current) return;
+    const t = setTimeout(() => {
+      aimByKey.current = false;
+      setSpokenAim(
+        `Aim ${directionOf(shownAim.angle)}. Power ${Math.round(shownAim.power * 100)} per cent.`,
+      );
+    }, 300);
+    return () => clearTimeout(t);
+  }, [shownAim]);
+
+  /**
+   * Reshuffle once the client is live.
+   *
+   * The rack above is drawn with a fixed 0.5 so the static pass and the first
+   * client pass agree — but nothing ever re-rolled it, so the opening rack was
+   * byte-identical on every visit and for every player. With rand pinned at
+   * 0.5 even `solidLeft` never flipped. Filled in place, the way rackUp does
+   * it, so the SVG groups keep their refs.
+   */
+  useEffect(() => {
+    const fresh = newRack();
+    for (let i = 0; i < balls.length; i++) Object.assign(balls[i], fresh[i]);
+    // Bumping the rack is not cosmetic here. paint() writes transforms and
+    // nothing else, but which ball is a solid and which a stripe is decided in
+    // the render — so shuffling the array in place without a re-render leaves
+    // the cloth showing the old rack while the rules go by the new one. rackUp
+    // bumps it for exactly this reason.
+    setRackNo((n) => n + 1);
+    paint();
+    // Once, on mount. A reshuffle mid-rack would move the balls under the player.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /** Read the shot that has just finished rolling, and say what happened. */
   const readShot = useCallback(() => {
     const shooter = turnRef.current;
     const outcome = judgeShot(shooter, groupsRef.current, beforeShot.current, balls);
-    if (outcome.scratched) respotCue(balls, TABLE);
+    // Only when there is a next shot to take. Scratching on the eight sets both
+    // flags, and respotting there put the cue calmly back on the head spot
+    // under a line explaining that it had followed the eight in.
+    if (outcome.scratched && !outcome.winner) respotCue(balls, TABLE);
 
     groupsRef.current = outcome.groups;
     setGroups(outcome.groups);
@@ -251,6 +313,7 @@ function EightBallScreen() {
         return;
       }
       readShot();
+      firing.current = false;
     }
 
     // Covers leaving the screen mid-shot as well as the shot ending: a loop
@@ -262,6 +325,16 @@ function EightBallScreen() {
   const fire = useCallback(() => {
     if (phaseRef.current !== 'aiming') return;
     if (balls[0].potted) return;
+    // Spans the whole resolution, which the phase does not.
+    //
+    // Under reduced motion the shot settles synchronously and readShot hands
+    // the phase straight back to 'aiming' for the next player — so the phase
+    // guard above is already satisfied again by the time the second activation
+    // of the same press arrives. Holding Enter on the footer button, which
+    // browsers auto-repeat, played out the whole rack by itself, alternating
+    // turns and reusing the previous player's aim; a double tap did it once.
+    if (firing.current) return;
+    firing.current = true;
 
     beforeShot.current = snapshot(balls);
     strike(balls, aim.current.angle, aim.current.power);
@@ -272,6 +345,7 @@ function EightBallScreen() {
       settle(balls, TABLE);
       paint();
       readShot();
+      firing.current = false;
       return;
     }
     setPhase('rolling');
@@ -344,6 +418,7 @@ function EightBallScreen() {
 
     event.preventDefault();
     aim.current = { angle, power };
+    aimByKey.current = true;
     setShownAim(aim.current);
     paintAim();
   }
@@ -357,6 +432,7 @@ function EightBallScreen() {
   }
 
   const rackUp = useCallback(() => {
+    firing.current = false;
     const fresh = newRack();
     // Filled in place so the SVG groups keep their refs and their identity.
     for (let i = 0; i < balls.length; i++) Object.assign(balls[i], fresh[i]);
@@ -430,7 +506,7 @@ function EightBallScreen() {
           <button
             type="button"
             className="sj-jar-tap"
-            style={{ touchAction: 'none', borderRadius: 20 }}
+            style={{ touchAction: 'none' }}
             aria-label="Aim and shoot. Left and right arrows aim, up and down set the power, space shoots."
             aria-describedby={aimDescId}
             // aria-disabled rather than disabled: a disabled button drops focus the
@@ -526,8 +602,8 @@ function EightBallScreen() {
                   {ball.kind === 'solid' && (
                     <circle
                       r={BALL_R}
-                      fill="var(--color-accent-500)"
-                      stroke="var(--color-accent-700)"
+                      fill={BALL_FILL.solid.body}
+                      stroke={BALL_FILL.solid.band}
                       strokeWidth="0.7"
                     />
                   )}
@@ -535,8 +611,8 @@ function EightBallScreen() {
                     <>
                       <circle
                         r={BALL_R}
-                        fill="var(--color-accent-2-300)"
-                        stroke="var(--color-accent-2-700)"
+                        fill={BALL_FILL.stripe.body}
+                        stroke={BALL_FILL.stripe.band}
                         strokeWidth="0.7"
                       />
                       <rect
@@ -545,7 +621,7 @@ function EightBallScreen() {
                         width={12.4}
                         height={4.8}
                         rx={1.2}
-                        fill="var(--color-accent-2-700)"
+                        fill={BALL_FILL.stripe.band}
                       />
                     </>
                   )}
@@ -558,6 +634,9 @@ function EightBallScreen() {
         <span id={aimDescId} className="sj-visually-hidden">
           Aim {directionOf(shownAim.angle)}. Power {Math.round(shownAim.power * 100)} per cent.
         </span>
+        <span role="status" aria-live="polite" className="sj-visually-hidden">
+          {spokenAim}
+        </span>
 
         <div
           style={{
@@ -568,7 +647,7 @@ function EightBallScreen() {
             maxWidth: TABLE_PX_W,
           }}
         >
-          <span className="text-muted" style={{ fontSize: 12, flex: 'none' }}>
+          <span aria-hidden="true" className="text-muted" style={{ fontSize: 12, flex: 'none' }}>
             Power
           </span>
           <span aria-hidden="true" className="sj-bar-track" style={{ flex: 1 }}>
@@ -650,7 +729,12 @@ function EightBallScreen() {
             className="btn btn-primary btn-block"
             style={{ height: 54, fontSize: 17, marginTop: 0 }}
             aria-busy={phase === 'rolling'}
-            disabled={phase === 'rolling'}
+            // aria-disabled, not disabled, for the same reason the table
+            // button gives: a disabled button drops focus the moment a shot
+            // starts, and this is the control a keyboard player uses every
+            // turn. fire() refuses on the phase and on the firing latch, so a
+            // press while rolling is a no-op.
+            aria-disabled={phase === 'rolling' || undefined}
             onClick={phase === 'over' ? rackUp : fire}
           >
             {phase === 'over' ? 'Rack them up' : phase === 'rolling' ? 'Rolling…' : 'Take the shot'}

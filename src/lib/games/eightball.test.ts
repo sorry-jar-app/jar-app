@@ -4,6 +4,7 @@ import {
   BALL_R,
   CENTRE_X,
   HEAD_Y,
+  MAX_SHOT,
   TABLE,
   judgeShot,
   leftOf,
@@ -123,6 +124,68 @@ test('no ball ever leaves the table, however hard it is hit', () => {
         assert.ok(worst <= 1e-6, `seed ${seed} shot ${shot}: out by ${worst.toFixed(4)}`);
         if (!moving) break;
       }
+    }
+  }
+});
+
+test('a full-power cue cannot pass through the ball it hits', () => {
+  // The other half of the promise in the module header: a naive integration
+  // steps over another ball just as readily as over a cushion, and the rack is
+  // full of balls sitting in each other's way. Fired flat up the table at a
+  // stationary one, across a spread of gaps and frame lengths, the cue must
+  // never come out on the far side of it.
+  //
+  // The cue starts below the target — smaller y is further up the table — so
+  // the whole invariant is that cue.y never crosses target.y.
+  for (const gap of [20, 40, 80, 120, 200]) {
+    for (const dt of [1 / 120, 1 / 60, 1 / 30, 1 / 10, 1, 5]) {
+      const cue: Ball = { id: 0, x: CENTRE_X, y: HEAD_Y, vx: 0, vy: 0, r: BALL_R, kind: 'cue', potted: false };
+      const target: Ball = {
+        id: 1, x: CENTRE_X, y: HEAD_Y - gap, vx: 0, vy: 0, r: BALL_R, kind: 'solid', potted: false,
+      };
+      const startY = target.y;
+      const balls = [cue, target];
+      // Straight up the table, everything it has. Pocketless, so neither ball
+      // can disappear down a hole and take the evidence with it.
+      strike(balls, -Math.PI / 2, 1);
+
+      for (let f = 0; f < 4000; f++) {
+        const moving = step(balls, WALLED, dt);
+        assert.ok(
+          cue.y >= target.y - 1e-6,
+          `gap ${gap} dt ${dt}: the cue came out in front, cue ${cue.y.toFixed(2)} target ${target.y.toFixed(2)}`,
+        );
+        const apart = Math.hypot(cue.x - target.x, cue.y - target.y);
+        assert.ok(
+          apart >= cue.r + target.r - 0.5,
+          `gap ${gap} dt ${dt}: balls overlapped to ${apart.toFixed(3)}`,
+        );
+        if (!moving) break;
+      }
+      assert.ok(target.y < startY, `gap ${gap} dt ${dt}: the target was never driven up the table`);
+    }
+  }
+});
+
+test('nothing is ever moving faster than a shot can hit it', () => {
+  // MAX_SUBS puts a ceiling on the sub-stepping, so containment only holds
+  // while speeds stay inside what strike() can produce. Nothing in the
+  // collision maths should pump energy in; this is the invariant that says so,
+  // and it is the one a DECEL or MAX_ADVANCE tune would break in silence.
+  for (let seed = 1; seed <= 25; seed++) {
+    const rand = seeded(seed);
+    const balls = newRack(rand);
+    strike(balls, -Math.PI / 2, 1);
+    for (let f = 0; f < 900; f++) {
+      const moving = step(balls, TABLE, 1 / 60);
+      for (const b of balls) {
+        const speed = Math.hypot(b.vx, b.vy);
+        assert.ok(
+          speed <= MAX_SHOT + 1e-6,
+          `seed ${seed} frame ${f}: ball ${b.id} at ${speed.toFixed(1)} over ${MAX_SHOT}`,
+        );
+      }
+      if (!moving) break;
     }
   }
 });
