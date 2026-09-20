@@ -1,8 +1,11 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Toggle } from '@/components/Toggle';
 import { money } from '@/lib/money';
+import { rowLabel } from '@/lib/when';
 import { useStore } from '@/lib/store';
 import type { Fine, NotificationPrefs } from '@/lib/types';
 
@@ -26,6 +29,13 @@ function eventLine(fine: Fine, partner: string): string {
 export default function NotificationsPage() {
   const { state, dispatch } = useStore();
   const { partner, fines, notif } = state;
+
+  // Taken after mount: relative labels read from the clock, and the server
+  // pass would disagree with the client's.
+  // Seeded fines carry display strings and never consult the clock, and real
+  // ones only exist after hydration — so this never differs across the two
+  // passes, and there is no epoch-valued first paint to flash through.
+  const now = new Date();
 
   const prefRows: { key: keyof NotificationPrefs; name: string; note: string }[] = [
     { key: 'fined', name: `${partner} fines you`, note: 'The moment it lands' },
@@ -77,7 +87,7 @@ export default function NotificationsPage() {
                 {eventLine(fine, partner)}
               </span>
               <span className="text-muted" style={{ fontSize: '12px' }}>
-                {fine.label} · {fine.when}
+                {fine.label} · {rowLabel(fine.when, now)}
               </span>
             </span>
           </div>

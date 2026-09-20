@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { SyncNotice } from './SyncNotice';
 import { TabBar } from './TabBar';
 
 /** The only four routes that carry the tab bar. */
@@ -20,6 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="sj-app">
       {children}
+      <SyncNotice />
       {TABBED.has(normalizePath(pathname)) && <TabBar />}
     </div>
   );

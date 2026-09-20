@@ -35,6 +35,21 @@ the whole setup, since Next.js needs no configuration on Vercel.
    domain and change over time. The usual shape is an `A` record on the apex and a `CNAME` on
    `www`. Point `imsorryjar.app` and `imsorry.app` at the same project as redirects.
 
+## Supabase Auth — do this before the first real sign-in
+
+Magic links return to `/auth/callback`, and Supabase will refuse any redirect it has not been
+told about. In the project dashboard, Authentication → URL Configuration:
+
+- **Site URL** — `https://sorryjar.app`
+- **Redirect URLs** — add `https://sorryjar.app/auth/callback`, plus
+  `http://localhost:3000/auth/callback` for local development.
+
+Set `NEXT_PUBLIC_SITE_URL=https://sorryjar.app` in Vercel too. Without it the app builds the
+redirect from `window.location.origin`, which is correct on the web and wrong under Capacitor,
+where the origin is `capacitor://localhost` — a URL no mail client can open.
+
+Until both are done, **every production sign-in bounces.**
+
 ## Supabase
 
 The GitHub integration applies `supabase/migrations` on merge to `main`. In Supabase → Settings →

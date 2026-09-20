@@ -3,6 +3,8 @@
 import { DAYS } from '@/lib/constants';
 import { veil } from '@/lib/money';
 import { sumFines, useStore } from '@/lib/store';
+import { isTimestamp, WEEKDAYS } from '@/lib/when';
+import type { Fine } from '@/lib/types';
 
 /**
  * Stats — four panels over the same fines everyone else reads.
@@ -14,6 +16,31 @@ import { sumFines, useStore } from '@/lib/store';
  * Every ratio here divides by a max that is floored at 1, so an emptied jar
  * renders flat bars instead of NaN.
  */
+/**
+ * The longest stretch of consecutive days with no fine, in days.
+ *
+ * Returns null when there is nothing to measure — the seeded fixtures carry
+ * display strings like "Tuesday" rather than dates, so there is no interval to
+ * take. Better a dash than an invented nine.
+ */
+function longestCleanRun(fines: Fine[]): number | null {
+  const days = new Set<number>();
+  for (const f of fines) {
+    if (!isTimestamp(f.when)) continue;
+    const d = new Date(f.when);
+    if (Number.isNaN(d.getTime())) continue;
+    days.add(Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 86_400_000));
+  }
+  if (days.size < 2) return null;
+
+  const sorted = Array.from(days).sort((a, b) => a - b);
+  let best = 0;
+  for (let i = 1; i < sorted.length; i++) {
+    best = Math.max(best, sorted[i] - sorted[i - 1] - 1);
+  }
+  return best;
+}
+
 export default function StatsPage() {
   const { state, sealed } = useStore();
 
@@ -43,6 +70,19 @@ export default function StatsPage() {
   );
   const maxDay = Math.max(1, ...byDay);
 
+  // The caption used to say "Tuesdays" while the chart highlighted Thursday.
+  // Read it off the same numbers the bars are drawn from.
+  // WEEKDAYS, not DAYS: the latter is the three-letter axis label, and
+  // "Thu" + "days" reads "Thudays".
+  const heaviest = byDay.some((v) => v > 0)
+    ? WEEKDAYS[byDay.indexOf(Math.max(...byDay))]
+    : null;
+
+  // The longest run of consecutive days with no fine at all — the thing the
+  // panel has always claimed to show. Only meaningful once fines carry real
+  // timestamps; the seeded display strings have no date to difference.
+  const streak = longestCleanRun(state.fines);
+
   return (
     <div className="sj-screen sj-screen--tabbed">
       <div style={{ padding: '12px 24px 6px' }}>
@@ -52,7 +92,7 @@ export default function StatsPage() {
       <div className="sj-body" style={{ padding: '8px 24px 20px', gap: 12 }}>
         <section className="sj-panel">
           <h6 className="sj-label" style={{ margin: '0 0 12px' }}>
-            Who owes more this month
+            Who owes more
           </h6>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, height: 104 }}>
             {owed.map((person) => (
@@ -89,10 +129,10 @@ export default function StatsPage() {
           <section className="sj-panel sj-panel--sage">
             <h6 style={{ margin: '0 0 6px' }}>Longest streak</h6>
             <div className="sj-money" style={{ fontSize: 26, lineHeight: 1.1 }}>
-              9 days
+              {streak === null ? '—' : `${streak} day${streak === 1 ? '' : 's'}`}
             </div>
             <div className="text-muted" style={{ fontSize: 12, marginTop: 2 }}>
-              {state.partner}, in June
+              {streak === null ? 'Once there is more history' : 'Nobody owing a thing'}
             </div>
           </section>
 
@@ -103,7 +143,7 @@ export default function StatsPage() {
               ${state.totalEver.toFixed(0)}
             </div>
             <div className="text-muted" style={{ fontSize: 12, marginTop: 2 }}>
-              Across 3 jars
+              Everything you have cashed out
             </div>
           </section>
         </div>
@@ -168,7 +208,9 @@ export default function StatsPage() {
             ))}
           </div>
           <div className="text-muted" style={{ fontSize: 12, marginTop: 10 }}>
-            Tuesdays cost you the most. Worth a look.
+            {heaviest
+              ? `${heaviest}s cost you the most. Worth a look.`
+              : 'Nothing logged yet.'}
           </div>
         </section>
       </div>

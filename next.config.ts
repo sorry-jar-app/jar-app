@@ -20,6 +20,15 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   images: { unoptimized: true },
   trailingSlash: isCapacitor,
+
+  // The invite link in the design is sorryjar.app/j/<code>, but a path segment
+  // cannot be a route under `output: 'export'` — the native build would need
+  // every code at build time. The page lives at /join?c=<code>; this gives the
+  // web the pretty URL. Rewrites are a no-op in an export, which is fine: the
+  // native app never serves an invite link, it only opens one.
+  async rewrites() {
+    return [{ source: '/j/:code', destination: '/join?c=:code' }];
+  },
 };
 
 export default nextConfig;

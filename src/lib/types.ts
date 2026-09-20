@@ -11,7 +11,7 @@ export type Rule = {
 };
 
 export type Fine = {
-  id: number;
+  id: string;
   /** Who the fine is on. */
   who: Person;
   /** Who logged it. Drives the notification copy, not the ledger. */

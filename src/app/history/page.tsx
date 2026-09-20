@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Avatar } from '@/components/Avatar';
 import { JarIcon } from '@/components/Icons';
 import { money, veil } from '@/lib/money';
 import { displayName, initialOf, useStore } from '@/lib/store';
+import { groupLabel, rowLabel } from '@/lib/when';
 import type { Fine, Person } from '@/lib/types';
 
 type Filter = 'all' | Person;
@@ -17,24 +18,30 @@ type Group = {
 };
 
 /**
- * Group consecutive fines that share a `when`.
+ * Group consecutive fines that fall under the same day heading.
  *
- * Not a Map keyed by `when`: the list is newest-first and the same label can
- * come round again further down (two "Tuesday" runs a fortnight apart), and
- * those are two groups, not one.
+ * Grouped on the LABEL, not the raw `when`: a real fine carries an ISO
+ * timestamp, which is unique per fine, so grouping on it raw would put every
+ * fine in a group of its own. Seed fines carry a display string, which
+ * groupLabel passes straight through, so both kinds sit in one list.
+ *
+ * Consecutive, and not a Map: the list is newest-first and the same heading
+ * can come round again further down (two "Tuesday" runs a fortnight apart),
+ * and those are two groups, not one.
  */
-function groupByRun(fines: Fine[]): Group[] {
+function groupByRun(fines: Fine[], now: Date): Group[] {
   const groups: Group[] = [];
 
   for (const fine of fines) {
+    const label = groupLabel(fine.when, now);
     const open = groups[groups.length - 1];
-    if (open && open.when === fine.when) {
+    if (open && open.when === label) {
       open.rows.push(fine);
       open.subtotal += fine.amt;
     } else {
       groups.push({
-        key: fine.when + '-' + fine.id,
-        when: fine.when,
+        key: label + '-' + fine.id,
+        when: label,
         subtotal: fine.amt,
         rows: [fine],
       });
@@ -55,7 +62,17 @@ export default function HistoryPage() {
   ];
 
   const fines = filter === 'all' ? state.fines : state.fines.filter((f) => f.who === filter);
-  const groups = groupByRun(fines);
+
+  // One clock for the whole render, taken after mount. Relative labels read
+  // from the clock, and reading it during the server pass would disagree with
+  // the client's. Seeded fines carry display strings and are unaffected, but
+  // real ones are timestamps.
+  // Seeded fines carry display strings and never consult the clock, and real
+  // ones only exist after hydration — so this never differs across the two
+  // passes, and there is no epoch-valued first paint to flash through.
+  const now = new Date();
+
+  const groups = groupByRun(fines, now);
 
   return (
     <div className="sj-screen sj-screen--tabbed">
@@ -108,7 +125,7 @@ export default function HistoryPage() {
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ fontSize: 14 }}>{fine.label}</span>
                   <span className="text-muted" style={{ fontSize: 11, display: 'block' }}>
-                    {fine.sev} · {fine.when}
+                    {fine.sev} · {rowLabel(fine.when, now)}
                   </span>
                 </span>
                 <span className="sj-money" style={{ fontSize: 16 }}>

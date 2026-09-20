@@ -39,24 +39,6 @@
 /* Shake the phone and the money jumps. Each coin carries its own --jx/--jy/--jr
    so the jar tumbles rather than sliding as one block; the values are derived
    from the coin's slot index, not random, so the server and client agree. */
-@keyframes coinJostle {
-  0%   { transform: translate(0, 0) rotate(0deg); }
-  25%  { transform: translate(var(--jx, 0px), var(--jy, 0px)) rotate(var(--jr, 0deg)); }
-  55%  { transform: translate(calc(var(--jx, 0px) * -0.55), calc(var(--jy, 0px) * -0.35))
-                   rotate(calc(var(--jr, 0deg) * -0.6)); }
-  80%  { transform: translate(calc(var(--jx, 0px) * 0.25), calc(var(--jy, 0px) * 0.2))
-                   rotate(calc(var(--jr, 0deg) * 0.3)); }
-  100% { transform: translate(0, 0) rotate(0deg); }
-}
-
-@keyframes jarShake {
-  0%, 100% { transform: translateX(0) rotate(0deg); }
-  15%      { transform: translateX(-3px) rotate(-1.1deg); }
-  35%      { transform: translateX(3px) rotate(1.1deg); }
-  55%      { transform: translateX(-2px) rotate(-0.7deg); }
-  78%      { transform: translateX(1.5px) rotate(0.4deg); }
-}
-
 /* The jar is a button so the tumble is reachable by keyboard too, but it must
    look like nothing — the artwork is the affordance. */
 .sj-jar-tap {
@@ -66,15 +48,6 @@
   border: none;
   cursor: pointer;
   border-radius: 28px;
-}
-
-.sj-jar-shake {
-  animation: jarShake 0.62s cubic-bezier(.36, .07, .19, .97) both;
-  transform-origin: 100px 240px;
-}
-
-.sj-coin-jostle {
-  animation: coinJostle 0.72s cubic-bezier(.34, 1.16, .64, 1) both;
 }
 
 @keyframes riseIn {
@@ -181,8 +154,13 @@ a,
   gap: 2px;
 }
 
-/* Pair — left aligned onboarding. */
-.sj-screen--onboarding { padding: calc(var(--sj-top) + 16px) 28px var(--sj-bottom); }
+/* Pair and the names step — left aligned onboarding. Scrolls: the shell is a
+   fixed-height box, and these screens have grown past a short phone. */
+.sj-screen--onboarding {
+  padding: calc(var(--sj-top) + 16px) 28px var(--sj-bottom);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 
 .sj-tinted { background: var(--color-accent-100); }
 
@@ -526,6 +504,22 @@ button.sj-surface-row { cursor: pointer; }
   border-radius: 999px;
   background: var(--color-neutral-200);
   overflow: hidden;
+}
+
+.sj-sync-notice {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: calc(var(--sj-tabbar-space) + 10px);
+  z-index: 6;
+  padding: 11px 16px;
+  border-radius: 999px;
+  background: var(--color-accent-700);
+  color: var(--color-bg);
+  font-size: 13px;
+  text-align: center;
+  box-shadow: var(--shadow-md);
+  animation: riseIn 0.28s ease both;
 }
 
 .sj-visually-hidden {

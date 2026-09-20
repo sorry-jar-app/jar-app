@@ -35,12 +35,29 @@ import {
   PEEK_MS,
   SEED_COINS,
   SEED_FINES,
-  SEED_NEXT_ID,
   SEED_TOTAL_EVER,
   SEVERITIES,
 } from './constants';
 import { parseAmount } from './money';
 import { loadState, saveState } from './storage';
+import { newId } from './id';
+import { getSupabase, isSupabaseConfigured } from './supabase/client';
+import {
+  archiveRule,
+  cashOut,
+  createJar,
+  deleteFine,
+  insertFine,
+  insertRule,
+  joinJar,
+  loadFines,
+  loadJar,
+  loadRules,
+  setDisplayName,
+  setMemberSettings,
+  updateRule,
+} from './supabase/api';
+import type { JarContext } from './supabase/api';
 import type {
   Fine,
   NotificationPrefs,
@@ -74,7 +91,6 @@ export type State = {
   partner: string;
   fines: Fine[];
   rules: Rule[];
-  nextId: number;
   coins: number;
   totalEver: number;
   notif: NotificationPrefs;
@@ -93,6 +109,12 @@ export type State = {
   cashOut: CashOut | null;
   /** Which rule the edit screen is on. */
   editingRuleId: string | null;
+
+  /**
+   * The jar this device is signed in to, or null when running on seed data.
+   * Its presence is what switches the app from local demo to real.
+   */
+  jar: JarContext | null;
 };
 
 const EMPTY_DRAFT: Draft = {
@@ -109,7 +131,6 @@ const INITIAL: State = {
   partner: DEFAULT_PARTNER,
   fines: SEED_FINES,
   rules: DEFAULT_RULES.slice(),
-  nextId: SEED_NEXT_ID,
   coins: SEED_COINS,
   totalEver: SEED_TOTAL_EVER,
   notif: { fined: true, selfFined: true, milestone: true },
@@ -123,6 +144,7 @@ const INITIAL: State = {
   dest: DESTINATIONS[0].id,
   cashOut: null,
   editingRuleId: null,
+  jar: null,
 };
 
 /** The slice that survives a reload. */
@@ -132,7 +154,6 @@ type Persisted = Pick<
   | 'partner'
   | 'fines'
   | 'rules'
-  | 'nextId'
   | 'coins'
   | 'totalEver'
   | 'notif'
@@ -147,7 +168,6 @@ function persistedOf(s: State): Persisted {
     partner: s.partner,
     fines: s.fines,
     rules: s.rules,
-    nextId: s.nextId,
     coins: s.coins,
     totalEver: s.totalEver,
     notif: s.notif,
@@ -166,10 +186,10 @@ export type Action =
   | { type: 'setOnboarded' }
   | { type: 'draft/patch'; patch: Partial<Draft> }
   | { type: 'draft/reset' }
-  | { type: 'fine/submit' }
+  | { type: 'fine/submit'; id: string; at: string; extraRuleId: string }
   | { type: 'fine/undo' }
   | { type: 'fine/clearAnim' }
-  | { type: 'rule/add'; name: string; price: number }
+  | { type: 'rule/add'; id: string; name: string; price: number }
   | { type: 'rule/edit'; id: string; name: string; price: number }
   | { type: 'rule/delete'; id: string }
   | { type: 'rule/openEditor'; id: string | null }
@@ -178,7 +198,81 @@ export type Action =
   | { type: 'cashout/clear' }
   | { type: 'notif/toggle'; key: keyof NotificationPrefs }
   | { type: 'mystery/toggle' }
+  | { type: 'remote/hydrate'; jar: JarContext; rules: Rule[]; fines: Fine[] }
+  | { type: 'remote/clear' }
   | { type: 'reset' };
+
+/**
+ * What screens dispatch. Ids and timestamps are filled in by the provider's
+ * dispatch wrapper, so a screen never has to mint one and the reducer stays
+ * pure.
+ */
+export type UiAction =
+  | Exclude<
+      Action,
+      | { type: 'fine/submit' }
+      | { type: 'rule/add' }
+      | { type: 'remote/hydrate' }
+      | { type: 'remote/clear' }
+      | { type: 'hydrate' }
+    >
+  | { type: 'fine/submit' }
+  | { type: 'rule/add'; name: string; price: number };
+
+/**
+ * Build the fine the current draft describes.
+ *
+ * Pure, and shared: the reducer applies it optimistically and the sync layer
+ * sends the very same row to Postgres. Both need the pricing and labelling
+ * rules, and they must not be allowed to drift apart. The id and timestamp are
+ * passed in rather than generated here — see lib/id.
+ */
+export function buildFine(
+  state: State,
+  id: string,
+  at: string,
+  extraRuleId: string,
+): { fine: Fine; extraRule: Rule | null } | null {
+  const d = state.draft;
+  if (!d.who || !d.ruleId) return null;
+
+  let amt: number;
+  let label: string;
+  let sev: Severity;
+  let extraRule: Rule | null = null;
+
+  if (d.ruleId === 'custom') {
+    amt = parseAmount(d.customAmt);
+    if (!amt) return null;
+    label = d.customName.trim() || 'Something else';
+    sev = 'one-off';
+    // Its own uuid. Deriving one from the fine's id looked tidy and was not:
+    // rules.id is a uuid column, so `<uuid>-rule` was rejected outright.
+    if (d.saveAsRule) extraRule = { id: extraRuleId, name: label, price: amt };
+  } else {
+    const rule = state.rules.find((r) => r.id === d.ruleId);
+    if (!rule) return null;
+    const mult = SEVERITIES.find((x) => x.id === d.sev)?.mult ?? 1;
+    amt = Math.round(rule.price * mult * 100) / 100;
+    label = rule.name;
+    sev = d.sev;
+  }
+
+  return {
+    fine: {
+      id,
+      who: d.who,
+      by: 'A',
+      rule: d.ruleId,
+      label,
+      sev,
+      amt,
+      when: at,
+      day: new Date(at).getDay(),
+    },
+    extraRule,
+  };
+}
 
 /* ── reducer ─────────────────────────────────────────────────────────────── */
 
@@ -207,48 +301,14 @@ export function reducer(state: State, action: Action): State {
       return { ...state, draft: EMPTY_DRAFT };
 
     case 'fine/submit': {
-      const d = state.draft;
-      if (!d.who || !d.ruleId) return state;
-
-      let amt: number;
-      let label: string;
-      let sev: Severity;
-      let extraRule: Rule | null = null;
-
-      if (d.ruleId === 'custom') {
-        amt = parseAmount(d.customAmt);
-        if (!amt) return state;
-        label = d.customName.trim() || 'Something else';
-        sev = 'one-off';
-        if (d.saveAsRule) {
-          extraRule = { id: 'r' + state.nextId + 'c', name: label, price: amt };
-        }
-      } else {
-        const rule = state.rules.find((r) => r.id === d.ruleId);
-        if (!rule) return state;
-        const mult = SEVERITIES.find((x) => x.id === d.sev)?.mult ?? 1;
-        amt = Math.round(rule.price * mult * 100) / 100;
-        label = rule.name;
-        sev = d.sev;
-      }
-
-      const fine: Fine = {
-        id: state.nextId,
-        who: d.who,
-        by: 'A',
-        rule: d.ruleId,
-        label,
-        sev,
-        amt,
-        when: 'Just now',
-        day: new Date().getDay(),
-      };
+      const built = buildFine(state, action.id, action.at, action.extraRuleId);
+      if (!built) return state;
+      const { fine, extraRule } = built;
 
       return {
         ...state,
         fines: [fine, ...state.fines],
         rules: extraRule ? [...state.rules, extraRule] : state.rules,
-        nextId: state.nextId + 1,
         lastFine: fine,
         coins: Math.min(COIN_CAP, state.coins + 1),
         animCoin: true,
@@ -275,8 +335,7 @@ export function reducer(state: State, action: Action): State {
       if (!action.name || !action.price) return state;
       return {
         ...state,
-        rules: [...state.rules, { id: 'r' + state.nextId, name: action.name, price: action.price }],
-        nextId: state.nextId + 1,
+        rules: [...state.rules, { id: action.id, name: action.name, price: action.price }],
       };
     }
 
@@ -333,7 +392,36 @@ export function reducer(state: State, action: Action): State {
     case 'mystery/toggle':
       return { ...state, mystery: !state.mystery };
 
+    case 'remote/hydrate': {
+      const { jar, rules, fines } = action;
+      return {
+        ...state,
+        jar,
+        me: jar.meName,
+        partner: jar.partnerName,
+        rules,
+        fines,
+        totalEver: jar.totalEver,
+        mystery: jar.mystery,
+        palette: jar.palette,
+        notif: jar.notif,
+        onboarded: true,
+        // The jar drawing is a function of how full the jar is, and a real jar
+        // starts empty rather than at the seed's fifteen.
+        coins: Math.max(COIN_FLOOR, Math.min(COIN_CAP, fines.length)),
+      };
+    }
+
+    case 'remote/clear':
+      // Detach from the jar, but stay onboarded: signing out should land you
+      // back in the local demo, not at the first-run screen. The provider
+      // re-hydrates the saved demo immediately after this.
+      return { ...INITIAL, onboarded: true };
+
     case 'reset':
+      // Only ever a demo affordance. With a real jar the database is the
+      // record, and refilling the screen with seed fines would just lie.
+      if (state.jar) return state;
       return { ...INITIAL, palette: state.palette, onboarded: true };
 
     default:
@@ -343,9 +431,17 @@ export function reducer(state: State, action: Action): State {
 
 /* ── context ─────────────────────────────────────────────────────────────── */
 
+export type AuthState = {
+  /** null while unknown, then the signed-in user or false for signed-out. */
+  userId: string | null;
+  email: string | null;
+  ready: boolean;
+};
+
 type Ctx = {
   state: State;
-  dispatch: React.Dispatch<Action>;
+  /** Screens dispatch UiActions; the wrapper fills in ids and mirrors writes. */
+  dispatch: (action: UiAction) => void;
   /** False until localStorage has been read, so the first paint matches SSR. */
   hydrated: boolean;
   /**
@@ -356,33 +452,309 @@ type Ctx = {
   sealed: boolean;
   peeking: boolean;
   peek: () => void;
+
+  auth: AuthState;
+  /** True once a real jar is loaded. False means the local seed demo. */
+  remote: boolean;
+  /** Configured project, whether or not anyone is signed in. */
+  configured: boolean;
+  signOut: () => Promise<void>;
+  /** Create a jar, or join one by invite code. Returns an error message. */
+  startJar: () => Promise<string | null>;
+  joinByCode: (code: string) => Promise<string | null>;
+  /** Surfaces a failed remote write; screens may show it, none must crash on it. */
+  syncError: string | null;
 };
 
 const StoreContext = createContext<Ctx | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, INITIAL);
+  const [state, baseDispatch] = useReducer(reducer, INITIAL);
   const [hydrated, setHydrated] = useState(false);
   const [peeking, setPeeking] = useState(false);
+  const [auth, setAuth] = useState<AuthState>({ userId: null, email: null, ready: false });
+  const [syncError, setSyncError] = useState<string | null>(null);
   const peekTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Read persisted state after mount — never during render, so the server
-  // pass and the first client pass agree.
+  // The wrapper below reads state at dispatch time to derive what to write
+  // remotely, and a ref is the only way to see the current value from inside a
+  // stable callback.
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  const sb = getSupabase();
+  const configured = isSupabaseConfigured();
+  const remote = state.jar !== null;
+
+  /* ── local persistence (demo mode only) ───────────────────────────────── */
+
   useEffect(() => {
     const saved = loadState<Persisted>();
-    if (saved) dispatch({ type: 'hydrate', payload: saved });
+    if (saved) baseDispatch({ type: 'hydrate', payload: saved });
     setHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
+    // Once a real jar is loaded Postgres is the record; writing it back to
+    // localStorage would only create a second, staler copy to disagree with.
+    if (!hydrated || remote) return;
     saveState(persistedOf(state));
-  }, [state, hydrated]);
+  }, [state, hydrated, remote]);
 
-  // The palette is a single attribute write on <html>.
   useEffect(() => {
     document.documentElement.setAttribute('data-palette', state.palette);
   }, [state.palette]);
+
+  /* ── auth ─────────────────────────────────────────────────────────────── */
+
+  useEffect(() => {
+    if (!sb) {
+      setAuth({ userId: null, email: null, ready: true });
+      return;
+    }
+    let alive = true;
+
+    sb.auth.getSession().then(({ data }) => {
+      if (!alive) return;
+      setAuth({
+        userId: data.session?.user.id ?? null,
+        email: data.session?.user.email ?? null,
+        ready: true,
+      });
+    });
+
+    const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
+      setAuth({
+        userId: session?.user.id ?? null,
+        email: session?.user.email ?? null,
+        ready: true,
+      });
+    });
+
+    return () => {
+      alive = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [sb]);
+
+  /* ── load the jar, then keep it live ──────────────────────────────────── */
+
+  /**
+   * Detach from the jar and restore whatever the local demo held before
+   * sign-in. localStorage is still intact because the persistence effect
+   * stops writing while a real jar is loaded.
+   */
+  const resetToLocal = useCallback(() => {
+    baseDispatch({ type: 'remote/clear' });
+    const saved = loadState<Persisted>();
+    if (saved) baseDispatch({ type: 'hydrate', payload: saved });
+  }, []);
+
+  // The dispatch wrapper is stable and must not be rebuilt whenever reload
+  // changes identity, so it reaches it through a ref.
+  const reloadRef = useRef<(() => Promise<void>) | null>(null);
+
+  const reload = useCallback(async () => {
+    if (!sb || !auth.userId) return;
+    try {
+      const jar = await loadJar(sb, auth.userId);
+      if (!jar) return;
+      const [rules, fines] = await Promise.all([
+        loadRules(sb, jar.jarId),
+        loadFines(sb, jar.jarId, jar.meId),
+      ]);
+      baseDispatch({ type: 'remote/hydrate', jar, rules, fines });
+      setSyncError(null);
+    } catch (e) {
+      setSyncError(e instanceof Error ? e.message : 'Could not reach the jar');
+    }
+  }, [sb, auth.userId]);
+
+  useEffect(() => {
+    reloadRef.current = reload;
+  }, [reload]);
+
+  // The notice says its piece and goes. Leaving it up would turn one refused
+  // write into a permanent banner.
+  useEffect(() => {
+    if (!syncError) return;
+    const t = setTimeout(() => setSyncError(null), 5200);
+    return () => clearTimeout(t);
+  }, [syncError]);
+
+  useEffect(() => {
+    if (!auth.ready) return;
+    if (!auth.userId) {
+      // Signed out: fall back to the local demo rather than an empty screen.
+      if (stateRef.current.jar) resetToLocal();
+      return;
+    }
+    void reload();
+  }, [auth.ready, auth.userId, reload, resetToLocal]);
+
+  // Both people have to see a fine the moment it lands. Any change to the
+  // jar's rows refetches — the payloads are small and a refetch cannot drift
+  // the way incremental patching can.
+  const jarId = state.jar?.jarId ?? null;
+  useEffect(() => {
+    if (!sb || !jarId) return;
+    const channel = sb
+      .channel(`jar:${jarId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'fines', filter: `jar_id=eq.${jarId}` }, () => void reload())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rules', filter: `jar_id=eq.${jarId}` }, () => void reload())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jar_members', filter: `jar_id=eq.${jarId}` }, () => void reload())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_outs', filter: `jar_id=eq.${jarId}` }, () => void reload())
+      .subscribe();
+
+    return () => {
+      void sb.removeChannel(channel);
+    };
+    // Keyed on the id, not the jar object: reload() dispatches a new object
+    // every time, which would resubscribe on every incoming change.
+  }, [sb, jarId, reload]);
+
+  /* ── the dispatch wrapper ─────────────────────────────────────────────── */
+
+  const dispatch = useCallback(
+    (action: UiAction) => {
+      const prev = stateRef.current;
+      const jar = prev.jar;
+
+      // Fill in what the reducer needs but must not generate itself.
+      let applied: Action;
+      if (action.type === 'fine/submit') {
+        applied = {
+          type: 'fine/submit',
+          id: newId(),
+          at: new Date().toISOString(),
+          extraRuleId: newId(),
+        };
+      } else if (action.type === 'rule/add') {
+        applied = { type: 'rule/add', id: newId(), name: action.name, price: action.price };
+      } else {
+        applied = action;
+      }
+
+      // Optimistic: the UI never waits on the network. A failed write surfaces
+      // through syncError and the next realtime refetch corrects the view.
+      baseDispatch(applied);
+
+      if (!sb || !jar) return;
+      const fail = (e: unknown) => {
+        setSyncError(e instanceof Error ? e.message : 'Could not save that');
+        // The optimistic change is still on screen and the database refused
+        // it, so no realtime event is coming to correct it. Refetch, or the
+        // two disagree until the app is reopened.
+        void reloadRef.current?.();
+      };
+
+      switch (applied.type) {
+        case 'fine/submit': {
+          const built = buildFine(prev, applied.id, applied.at, applied.extraRuleId);
+          if (!built) return;
+          const writes: Promise<unknown>[] = [insertFine(sb, jar.jarId, jar, built.fine)];
+          if (built.extraRule) writes.push(insertRule(sb, jar.jarId, built.extraRule));
+          Promise.all(writes).catch(fail);
+          break;
+        }
+        case 'fine/undo': {
+          if (prev.lastFine) deleteFine(sb, prev.lastFine.id).catch(fail);
+          break;
+        }
+        case 'rule/add':
+          insertRule(sb, jar.jarId, {
+            id: applied.id,
+            name: applied.name,
+            price: applied.price,
+          }).catch(fail);
+          break;
+        case 'rule/edit':
+          updateRule(sb, { id: applied.id, name: applied.name, price: applied.price }).catch(fail);
+          break;
+        case 'rule/delete':
+          archiveRule(sb, applied.id).catch(fail);
+          break;
+        case 'cashout': {
+          const chosen = DESTINATIONS.find((d) => d.id === prev.dest) ?? DESTINATIONS[0];
+          const pool = DESTINATIONS.filter((d) => d.id !== 'wheel');
+          const spun = chosen.id === 'wheel';
+          const name = spun ? pool[applied.pick % pool.length].name : chosen.name;
+          cashOut(sb, name, spun).catch(fail);
+          break;
+        }
+        case 'setName': {
+          const target = applied.person === 'A' ? jar.meId : jar.partnerId;
+          // You can rename yourself. Renaming the other person is a local
+          // nickname only — their profile is theirs.
+          if (applied.person === 'A' && target) {
+            setDisplayName(sb, target, applied.name || NAME_FALLBACK_ME).catch(fail);
+          }
+          break;
+        }
+        case 'mystery/toggle':
+          setMemberSettings(sb, jar.jarId, jar.meId, { mystery: !prev.mystery }).catch(fail);
+          break;
+        case 'setPalette':
+          setMemberSettings(sb, jar.jarId, jar.meId, { palette: applied.palette }).catch(fail);
+          break;
+        case 'notif/toggle': {
+          const column =
+            applied.key === 'fined'
+              ? 'notify_fined'
+              : applied.key === 'selfFined'
+                ? 'notify_self_fined'
+                : 'notify_milestone';
+          setMemberSettings(sb, jar.jarId, jar.meId, {
+            [column]: !prev.notif[applied.key],
+          }).catch(fail);
+          break;
+        }
+        default:
+          break;
+      }
+    },
+    [sb],
+  );
+
+  /* ── jar lifecycle ────────────────────────────────────────────────────── */
+
+  const startJar = useCallback(async (): Promise<string | null> => {
+    if (!sb || !auth.userId) return 'Sign in first';
+    try {
+      await createJar(sb);
+      await reload();
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : 'Could not start the jar';
+    }
+  }, [sb, auth.userId, reload]);
+
+  const joinByCode = useCallback(
+    async (code: string): Promise<string | null> => {
+      if (!sb || !auth.userId) return 'Sign in first';
+      try {
+        await joinJar(sb, code.trim());
+        await reload();
+        return null;
+      } catch (e) {
+        return e instanceof Error ? e.message : 'Could not join that jar';
+      }
+    },
+    [sb, auth.userId, reload],
+  );
+
+  const signOut = useCallback(async () => {
+    if (!sb) return;
+    // Let a failure reach the caller — the screen shows the reason rather
+    // than silently pretending the session ended.
+    const { error } = await sb.auth.signOut();
+    if (error) throw new Error(error.message);
+    resetToLocal();
+  }, [sb, resetToLocal]);
+
+  /* ── peek ─────────────────────────────────────────────────────────────── */
 
   const peek = useCallback(() => {
     if (peekTimer.current) clearTimeout(peekTimer.current);
@@ -390,7 +762,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     peekTimer.current = setTimeout(() => setPeeking(false), PEEK_MS);
   }, []);
 
-  // Clear on unmount, and re-seal the moment Mystery jar is switched off.
   useEffect(() => {
     return () => {
       if (peekTimer.current) clearTimeout(peekTimer.current);
@@ -416,8 +787,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       sealed: !hydrated || (state.mystery && !peeking),
       peeking,
       peek,
+      auth,
+      remote,
+      configured,
+      signOut,
+      startJar,
+      joinByCode,
+      syncError,
     }),
-    [state, hydrated, peeking, peek],
+    [
+      state, dispatch, hydrated, peeking, peek, auth, remote, configured,
+      signOut, startJar, joinByCode, syncError,
+    ],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

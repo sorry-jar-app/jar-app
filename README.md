@@ -106,23 +106,26 @@ illustrator before launch.
 ## Backend
 
 The schema lives in [`supabase/`](supabase/) and is documented in
-[`supabase/README.md`](supabase/README.md) — tables, the three atomic functions, and the RLS
-model. It has been applied to a clean Postgres and exercised end to end.
+[`supabase/README.md`](supabase/README.md) — tables, the atomic functions, and the RLS model.
 
-The **client is not wired to it yet**. `src/lib/storage.ts` is still localStorage, and it is the
-seam: everything above it is written against the store, so swapping in Supabase is that one file
-plus making the store's writes async.
+The client **is** wired to it. `src/lib/supabase/api.ts` holds every read and write;
+`src/lib/store.tsx` mirrors each local change to Postgres optimistically and subscribes to
+realtime so a fine shows up on the other phone as it lands. Sign-in is an emailed magic link
+(`/signin` → `/auth/callback`).
+
+**Signed out, the app runs on seed data in localStorage exactly as before.** That is deliberate:
+the demo has to work for anyone without an account, and solo use before pairing is a product
+requirement. `src/lib/storage.ts` is now only that local path.
 
 ## Not built yet
 
 Needed before this is a real product:
 
-- **Auth and pairing** — Sign in with Apple/Google, then pair by invite code or link
-  (`sorryjar.app/j/<code>`), SMS invite optional. **Solo use before pairing must keep working.**
-- **Sync** — both people see a fine the moment it lands.
+- **Sign in with Apple/Google.** Only the magic link is built. Apple ID is also an App Store
+  requirement once any third-party sign-in exists, so it gates iOS submission.
 - **Push** — three triggers only: partner fined you, partner fined themselves, jar crossed a round
   number. Nothing else. The client explicitly declined streak reminders, weekly recaps and
-  re-engagement nudges.
+  re-engagement nudges. The `push_tokens` table exists; nothing registers a token or sends.
 - **Export** — the Settings row promises CSV of fine history.
 - **The jar illustration** — real artwork to replace the placeholder SVG.
 
