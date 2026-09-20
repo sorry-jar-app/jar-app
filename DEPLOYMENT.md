@@ -26,25 +26,25 @@ the whole setup, since Next.js needs no configuration on Vercel.
    The anon key is public by design — row level security is what protects the data.
    **Never** add the `service_role` key, and never prefix anything secret with `NEXT_PUBLIC_`.
 
-5. **Domain.** Production domain is `sorryjar.app`, which is what the Pairing screen's invite link
-   already says (`sorryjar.app/j/4k2p`, `src/lib/constants.ts`). Changing the production domain
+5. **Domain.** Production domain is `digijar.app`, which is what the Pairing screen's invite link
+   already says (`digijar.app/j/4k2p`, `src/lib/constants.ts`). Changing the production domain
    means changing that constant too, or the invite link lies.
 
    Add it under Project → Settings → Domains. Vercel prints the exact DNS records to create at the
    registrar on that screen — use those rather than any value written down here, since they vary by
    domain and change over time. The usual shape is an `A` record on the apex and a `CNAME` on
-   `www`. Point `imsorryjar.app` and `imsorry.app` at the same project as redirects.
+   `www`. Point `imdigijar.app` and `imsorry.app` at the same project as redirects.
 
 ## Supabase Auth — do this before the first real sign-in
 
 Magic links return to `/auth/callback`, and Supabase will refuse any redirect it has not been
 told about. In the project dashboard, Authentication → URL Configuration:
 
-- **Site URL** — `https://sorryjar.app`
-- **Redirect URLs** — add `https://sorryjar.app/auth/callback`, plus
+- **Site URL** — `https://digijar.app`
+- **Redirect URLs** — add `https://digijar.app/auth/callback`, plus
   `http://localhost:3000/auth/callback` for local development.
 
-Set `NEXT_PUBLIC_SITE_URL=https://sorryjar.app` in Vercel too. Without it the app builds the
+Set `NEXT_PUBLIC_SITE_URL=https://digijar.app` in Vercel too. Without it the app builds the
 redirect from `window.location.origin`, which is correct on the web and wrong under Capacitor,
 where the origin is `capacitor://localhost` — a URL no mail client can open.
 

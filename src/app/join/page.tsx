@@ -3,7 +3,7 @@
 /**
  * Where an invite link lands.
  *
- * The handoff's link shape is sorryjar.app/j/<code>, but a path segment cannot
+ * The handoff's link shape is digijar.app/j/<code>, but a path segment cannot
  * be a route under `output: 'export'` — the Capacitor build would have to know
  * every code at build time. So the real page is this one, reading the code
  * from the query string, and next.config rewrites /j/:code onto it for the

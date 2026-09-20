@@ -103,7 +103,7 @@ export const NAME_FALLBACK_PARTNER = 'Them';
 export const JAR_STARTED = '4 March';
 
 export const INVITE_CODE = 'JAR-4K2P';
-export const INVITE_URL = 'sorryjar.app/j/4k2p';
+export const INVITE_URL = 'digijar.app/j/4k2p';
 
 /**
  * The 17 demo fines from the handoff: $48.50 total, Alex $31.00, Sam $17.50.
