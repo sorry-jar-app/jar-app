@@ -32,12 +32,3 @@ export function saveState<T>(state: T): void {
     /* Quota or a blocked store — the session still works, it just won't survive a reload. */
   }
 }
-
-export function clearState(): void {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.removeItem(KEY);
-  } catch {
-    /* no-op */
-  }
-}

@@ -26,7 +26,8 @@
       "@/*": [
         "./src/*"
       ]
-    }
+    },
+    "allowImportingTsExtensions": true
   },
   "include": [
     "next-env.d.ts",
@@ -36,10 +37,11 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules",
-    "out",
+    "**/*.test.ts",
     ".next",
+    "android",
     "ios",
-    "android"
+    "node_modules",
+    "out"
   ]
 }

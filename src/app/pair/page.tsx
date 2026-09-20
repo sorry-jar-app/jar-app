@@ -1,21 +1,30 @@
 'use client';
 
 /**
- * Pairing — get the second person in.
+ * Pairing — get the second person in, from either side.
  *
  * One frame, three states: the seed demo, a real jar still waiting on its
  * second person, and a jar that already has one. The jar exists from the moment
  * this screen is reached, so every action here marks the user onboarded; solo
  * use before the partner joins is supported.
+ *
+ * The code box is also the only place an invitee can type a code by hand, so it
+ * shows to a signed-out visitor too — they cannot redeem it without a session,
+ * so their Join stashes the code and sends them to sign in, the same loop /join
+ * runs for an invite link. Arriving with ?join=1 lifts the box above the invite
+ * card: whoever came to join has no use for a code of their own yet.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { INVITE_CODE, INVITE_URL } from '@/lib/constants';
 import { displayName, useStore } from '@/lib/store';
 
 const DEMO_LINK = `https://${INVITE_URL}`;
 const COPIED_MS = 1600;
+
+/** The same drop box /join uses; /auth/callback redeems it after sign-in. */
+const PENDING_CODE = 'sorry-jar:pending-code';
 
 const CARD: React.CSSProperties = {
   marginTop: 26,
@@ -31,6 +40,11 @@ const CARD_LABEL: React.CSSProperties = {
   textTransform: 'uppercase',
   color: 'var(--color-accent-700)',
 };
+
+/** Four characters, with or without the JAR- the design prints in front. */
+function looksLikeCode(entered: string): boolean {
+  return /^(jar-)?[a-z0-9]{4}$/i.test(entered.trim());
+}
 
 /**
  * The database raises its reasons as lowercase fragments. Say them the way the
@@ -50,8 +64,9 @@ function bare(link: string): string {
   return link.replace(/^https?:\/\//, '');
 }
 
-export default function PairPage() {
+function PairFlow() {
   const router = useRouter();
+  const params = useSearchParams();
   const { state, dispatch, auth, configured, joinByCode, startJar } = useStore();
 
   const jar = state.jar;
@@ -60,10 +75,18 @@ export default function PairPage() {
   // Signed in with no jar: the callback's create failed, or they landed here
   // directly. Showing the demo code here would be handing them a dead invite.
   const jarless = signedIn && !jar;
-  // You can only join a jar if you are not already in one. The database
-  // refuses the rest (join_jar_by_code raises "you are already in a jar"), but
-  // an control you cannot use should not be on screen.
-  const canJoin = signedIn && jar === null;
+  // You can only join a jar if you are not already in one, and only if there is
+  // a project to join one in — with nothing configured a code has nothing to
+  // open. Signed out is fine: that is most invitees, and Join handles them.
+  // Held back until auth has answered, so the button knows which of the two
+  // paths it is on before anyone can press it.
+  // Show the field to anyone who could plausibly use it: signed out (stash the
+  // code and go sign in), or signed in without a jar (redeem it now). Only a
+  // build with no Supabase at all has nothing a code could do — and in that
+  // build the demo says so rather than hiding the box someone was sent to find.
+  const canJoin = configured && auth.ready && jar === null;
+  // Sent here by the Welcome screen's "I have an invite code".
+  const leadWithCode = canJoin && params.get('join') === '1';
 
   const [origin, setOrigin] = useState('');
   const [copied, setCopied] = useState(false);
@@ -73,11 +96,17 @@ export default function PairPage() {
   const [opening, setOpening] = useState(false);
   const [openError, setOpenError] = useState<string | null>(null);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const codeInput = useRef<HTMLInputElement>(null);
 
   // Reading window.location during render would not match the server pass.
   useEffect(() => {
     setOrigin(window.location.origin);
   }, []);
+
+  // Came here to type a code: put the cursor in the box.
+  useEffect(() => {
+    if (leadWithCode) codeInput.current?.focus();
+  }, [leadWithCode]);
 
   useEffect(
     () => () => {
@@ -134,6 +163,29 @@ export default function PairPage() {
   const join = async () => {
     const entered = code.trim();
     if (!entered || joining) return;
+
+    // No session, so nothing can be redeemed yet. Hold the code and go get one;
+    // the callback picks it up on the way back. localStorage rather than
+    // session storage because the emailed link often opens in a new tab.
+    if (!signedIn) {
+      // Reject obvious nonsense here rather than parking it in the drop box:
+      // a real code is four characters, optionally prefixed JAR-.
+      if (!looksLikeCode(entered)) {
+        setJoinError('That is not the shape of a code. It looks like JAR-4K2P.');
+        return;
+      }
+      setJoining(true);
+      try {
+        localStorage.setItem(PENDING_CODE, entered);
+      } catch {
+        // Private mode: nowhere to keep it, and nowhere to keep the session
+        // either — the auth client stores one the same way. Carry on anyway,
+        // so sign-in fails in one place rather than two.
+      }
+      goSignIn();
+      return;
+    }
+
     setJoining(true);
     setJoinError(null);
     const problem = await joinByCode(entered);
@@ -145,6 +197,52 @@ export default function PairPage() {
     }
     goJar();
   };
+
+  // One section, two homes: above the invite card for someone who arrived
+  // to join, below it for someone who is idly passing through.
+  const codeSection = canJoin ? (
+    <div className="sj-section" style={{ marginTop: 22 }}>
+      <h6 className="sj-label">Came here with a code?</h6>
+      <div style={{ display: 'flex', gap: 9, alignItems: 'flex-end' }}>
+        <div className="field" style={{ flex: 1 }}>
+          <label htmlFor="pair-code">Their invite code</label>
+          <input
+            id="pair-code"
+            ref={codeInput}
+            className="input"
+            style={{ height: 44 }}
+            value={code}
+            placeholder="JAR-4K2P"
+            autoCapitalize="characters"
+            autoComplete="off"
+            spellCheck={false}
+            onChange={(e) => {
+              setCode(e.target.value);
+              if (joinError) setJoinError(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void join();
+            }}
+          />
+        </div>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ height: 44, marginTop: 0 }}
+          onClick={() => void join()}
+          disabled={joining || code.trim().length === 0}
+          aria-busy={joining}
+        >
+          {joining ? 'Joining…' : 'Join'}
+        </button>
+      </div>
+      {joinError && (
+        <p role="alert" style={{ fontSize: 13, color: 'var(--color-accent-700)' }}>
+          {joinError}
+        </p>
+      )}
+    </div>
+  ) : null;
 
   return (
     <div className="sj-screen sj-screen--onboarding">
@@ -168,6 +266,8 @@ export default function PairPage() {
         One jar, two ledgers. They&#39;ll see everything you log, and you&#39;ll see everything they
         do.
       </p>
+
+      {leadWithCode && codeSection}
 
       {paired ? (
         <div style={CARD}>
@@ -277,48 +377,7 @@ export default function PairPage() {
         </div>
       )}
 
-      {canJoin && (
-        <div className="sj-section" style={{ marginTop: 22 }}>
-          <h6 className="sj-label">Came here with a code?</h6>
-          <div style={{ display: 'flex', gap: 9, alignItems: 'flex-end' }}>
-            <div className="field" style={{ flex: 1 }}>
-              <label htmlFor="pair-code">Their invite code</label>
-              <input
-                id="pair-code"
-                className="input"
-                style={{ height: 44 }}
-                value={code}
-                placeholder="JAR-4K2P"
-                autoCapitalize="characters"
-                autoComplete="off"
-                spellCheck={false}
-                onChange={(e) => {
-                  setCode(e.target.value);
-                  if (joinError) setJoinError(null);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') void join();
-                }}
-              />
-            </div>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              style={{ height: 44, marginTop: 0 }}
-              onClick={() => void join()}
-              disabled={joining || code.trim().length === 0}
-              aria-busy={joining}
-            >
-              {joining ? 'Joining…' : 'Join'}
-            </button>
-          </div>
-          {joinError && (
-            <p role="alert" style={{ fontSize: 13, color: 'var(--color-accent-700)' }}>
-              {joinError}
-            </p>
-          )}
-        </div>
-      )}
+      {!leadWithCode && codeSection}
 
       <div style={{ flex: 1 }} />
 
@@ -354,5 +413,14 @@ export default function PairPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function PairPage() {
+  // useSearchParams needs a Suspense boundary to prerender under static export.
+  return (
+    <Suspense fallback={<div className="sj-screen sj-screen--onboarding" />}>
+      <PairFlow />
+    </Suspense>
   );
 }

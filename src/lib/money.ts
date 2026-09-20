@@ -33,5 +33,16 @@ export function veil(n: number, sealed: boolean): string {
  */
 export function parseAmount(value: string | number): number {
   const n = parseFloat(String(value).replace(/[^0-9.]/g, '')) || 0;
-  return Math.round(n * 100) / 100;
+  return roundMoney(n);
+}
+
+/**
+ * Round to cents without the float dust.
+ *
+ * `Math.round(1.005 * 100)` is 100, not 101, because 1.005 * 100 lands on
+ * 100.49999999999999. Nudging by one epsilon first pushes it back over the
+ * line. Worth the care: this is the function every amount goes through.
+ */
+export function roundMoney(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
 }

@@ -18,6 +18,9 @@ const isCapacitor = process.env.BUILD_TARGET === 'capacitor';
 const nextConfig: NextConfig = {
   ...(isCapacitor ? { output: 'export' as const } : {}),
   reactStrictMode: true,
+  // Keep *.test.ts out of the bundle; they import with explicit .ts
+  // extensions so `node --test` can run them without a build step.
+  pageExtensions: ['tsx', 'ts'].flatMap((e) => [e]),
   images: { unoptimized: true },
   trailingSlash: isCapacitor,
 

@@ -20,8 +20,12 @@ export default function CashOutPage() {
   const { state, dispatch, sealed } = useStore();
 
   const total = sumFines(state.fines);
+  // An empty jar has nothing to spend, and cashing it out would write a $0 row
+  // into the lifetime history for no reason.
+  const empty = state.fines.length === 0;
 
   function handleCashOut() {
+    if (empty) return;
     // Picked at click time, not during render: a random number in the render
     // pass would differ between the server HTML and the first client pass.
     const pick = Math.floor(Math.random() * 3);
@@ -83,9 +87,14 @@ export default function CashOutPage() {
           type="button"
           className="btn btn-primary btn-block"
           style={{ height: 54, fontSize: 17, marginTop: 0 }}
+          disabled={empty}
           onClick={handleCashOut}
         >
-          {state.mystery ? 'Cash out and reveal' : `Cash out ${money(total)}`}
+          {empty
+            ? 'Nothing in the jar'
+            : state.mystery
+              ? 'Cash out and reveal'
+              : `Cash out ${money(total)}`}
         </button>
         <p className="text-muted" style={{ fontSize: 12, textAlign: 'center', margin: '10px 0 0' }}>
           This empties the jar and starts a fresh one.

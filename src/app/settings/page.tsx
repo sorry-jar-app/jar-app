@@ -6,24 +6,71 @@ import { ChevronRightIcon } from '@/components/Icons';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Toggle } from '@/components/Toggle';
 import { JAR_STARTED } from '@/lib/constants';
+import { downloadCsv, finesToRows, toCsv, type ExportEntry } from '@/lib/csv';
+import { getSupabase } from '@/lib/supabase/client';
+import { loadAllFines } from '@/lib/supabase/api';
 import { formatStarted } from '@/lib/when';
 import { useStore } from '@/lib/store';
+
+/** `sorry-jar-2026-09-20.csv`, in the phone's own timezone rather than UTC. */
+function filename(now: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `sorry-jar-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}.csv`;
+}
 
 export default function SettingsPage() {
   const router = useRouter();
   const { state, dispatch, auth, configured, remote, signOut } = useStore();
   const [signingOut, setSigningOut] = useState(false);
   const [leaveError, setLeaveError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const rows: ReadonlyArray<{ label: string; value: string }> = [
     { label: 'Currency', value: 'USD $' },
     { label: 'Jar started', value: state.jar ? formatStarted(state.jar.startedOn) : JAR_STARTED },
-    { label: 'Export history', value: 'CSV' },
   ];
 
   // A real jar is solo until the second person joins — /pair says so, and this
   // screen must not claim otherwise one tap away.
   const waiting = Boolean(state.jar && !state.jar.partnerId);
+
+  const exportHistory = async () => {
+    setExporting(true);
+    setExportError(null);
+    try {
+      let entries: ExportEntry[];
+
+      if (state.jar) {
+        const sb = getSupabase();
+        // A real jar cannot exist without a client, but the export must not
+        // quietly fall back to state.fines — that is the current jar only.
+        if (!sb) throw new Error('Could not export');
+        entries = await loadAllFines(sb, state.jar.jarId, state.jar.meId);
+        // A refused read comes back as no rows. Fines on screen mean the jar
+        // is not empty, whatever the query just said.
+        if (entries.length === 0 && state.fines.length > 0) {
+          throw new Error('Could not reach the jar');
+        }
+      } else {
+        entries = state.fines.map((fine) => ({ fine, cashedOutAt: null, destination: null }));
+      }
+
+      if (entries.length === 0) {
+        setExportError('Nothing to export yet.');
+        return;
+      }
+
+      // The amounts go out unmasked even in Mystery jar. This is your own
+      // history, asked for on purpose — not a figure glanced at on screen.
+      const csv = toCsv(finesToRows(entries, { me: state.me, partner: state.partner }));
+      downloadCsv(filename(new Date()), csv);
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : 'Could not export');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const leave = async () => {
     setSigningOut(true);
@@ -135,6 +182,29 @@ export default function SettingsPage() {
               </span>
             </div>
           ))}
+
+          <button
+            type="button"
+            className="sj-surface-row sj-row"
+            disabled={exporting}
+            aria-busy={exporting}
+            onClick={exportHistory}
+          >
+            <span style={{ flex: 1, fontSize: 15 }}>Export history</span>
+            <span className="text-muted" style={{ fontSize: 14 }}>
+              {exporting ? 'Gathering…' : 'CSV'}
+            </span>
+            <ChevronRightIcon size={16} style={{ opacity: 0.45 }} />
+          </button>
+
+          {exportError && (
+            <p
+              role="alert"
+              style={{ fontSize: 13, margin: '2px 2px 0', color: 'var(--color-accent-700)' }}
+            >
+              {exportError}
+            </p>
+          )}
         </div>
 
         {/* Nothing here at all when there is no project to sign in to, and

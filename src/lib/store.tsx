@@ -26,16 +26,11 @@ import {
 import {
   COIN_CAP,
   COIN_FLOOR,
-  DEFAULT_ME,
-  DEFAULT_PARTNER,
   DEFAULT_RULES,
   DESTINATIONS,
   NAME_FALLBACK_ME,
   NAME_FALLBACK_PARTNER,
   PEEK_MS,
-  SEED_COINS,
-  SEED_FINES,
-  SEED_TOTAL_EVER,
   SEVERITIES,
 } from './constants';
 import { parseAmount } from './money';
@@ -98,6 +93,8 @@ export type State = {
   palette: PaletteName;
   /** True once the pair step has been passed, either way. */
   onboarded: boolean;
+  /** ISO date this jar was started, set when onboarding finishes. '' until then. */
+  startedOn: string;
 
   /* Transient — not persisted. */
   draft: Draft;
@@ -127,16 +124,17 @@ const EMPTY_DRAFT: Draft = {
 };
 
 const INITIAL: State = {
-  me: DEFAULT_ME,
-  partner: DEFAULT_PARTNER,
-  fines: SEED_FINES,
+  me: NAME_FALLBACK_ME,
+  partner: NAME_FALLBACK_PARTNER,
+  fines: [],
   rules: DEFAULT_RULES.slice(),
-  coins: SEED_COINS,
-  totalEver: SEED_TOTAL_EVER,
+  coins: 0,
+  totalEver: 0,
   notif: { fined: true, selfFined: true, milestone: true },
   mystery: false,
   palette: 'Mulberry',
   onboarded: false,
+  startedOn: '',
 
   draft: EMPTY_DRAFT,
   lastFine: null,
@@ -160,6 +158,7 @@ type Persisted = Pick<
   | 'mystery'
   | 'palette'
   | 'onboarded'
+  | 'startedOn'
 >;
 
 function persistedOf(s: State): Persisted {
@@ -174,6 +173,7 @@ function persistedOf(s: State): Persisted {
     mystery: s.mystery,
     palette: s.palette,
     onboarded: s.onboarded,
+    startedOn: s.startedOn,
   };
 }
 
@@ -183,7 +183,7 @@ export type Action =
   | { type: 'hydrate'; payload: Partial<Persisted> }
   | { type: 'setName'; person: Person; name: string }
   | { type: 'setPalette'; palette: PaletteName }
-  | { type: 'setOnboarded' }
+  | { type: 'setOnboarded'; at: string }
   | { type: 'draft/patch'; patch: Partial<Draft> }
   | { type: 'draft/reset' }
   | { type: 'fine/submit'; id: string; at: string; extraRuleId: string }
@@ -195,6 +195,7 @@ export type Action =
   | { type: 'rule/openEditor'; id: string | null }
   | { type: 'dest/set'; dest: string }
   | { type: 'cashout'; pick: number }
+  | { type: 'cashout/confirm'; amt: number; dest: string }
   | { type: 'cashout/clear' }
   | { type: 'notif/toggle'; key: keyof NotificationPrefs }
   | { type: 'mystery/toggle' }
@@ -214,10 +215,26 @@ export type UiAction =
       | { type: 'rule/add' }
       | { type: 'remote/hydrate' }
       | { type: 'remote/clear' }
+      | { type: 'setOnboarded' }
       | { type: 'hydrate' }
     >
   | { type: 'fine/submit' }
+  | { type: 'setOnboarded' }
   | { type: 'rule/add'; name: string; price: number };
+
+/**
+ * Which destination a cash-out actually goes to.
+ *
+ * "Spin the wheel" resolves to one of the other three, picked by the caller so
+ * the reducer stays pure. Shared because the reducer and the sync layer both
+ * need it and must not disagree about where the money went.
+ */
+export function resolveDestination(destId: string, pick: number): { name: string; spun: boolean } {
+  const chosen = DESTINATIONS.find((d) => d.id === destId) ?? DESTINATIONS[0];
+  if (chosen.id !== 'wheel') return { name: chosen.name, spun: false };
+  const pool = DESTINATIONS.filter((d) => d.id !== 'wheel');
+  return { name: pool[pick % pool.length].name, spun: true };
+}
 
 /**
  * Build the fine the current draft describes.
@@ -292,7 +309,13 @@ export function reducer(state: State, action: Action): State {
       return { ...state, palette: action.palette };
 
     case 'setOnboarded':
-      return { ...state, onboarded: true };
+      // First time through only: re-passing the pair screen should not reset
+      // the date the jar started.
+      return {
+        ...state,
+        onboarded: true,
+        startedOn: state.startedOn || action.at,
+      };
 
     case 'draft/patch':
       return { ...state, draft: { ...state.draft, ...action.patch } };
@@ -365,10 +388,7 @@ export function reducer(state: State, action: Action): State {
 
     case 'cashout': {
       const amt = state.fines.reduce((a, f) => a + f.amt, 0);
-      const chosen = DESTINATIONS.find((d) => d.id === state.dest) ?? DESTINATIONS[0];
-      const pool = DESTINATIONS.filter((d) => d.id !== 'wheel');
-      const spun = chosen.id === 'wheel';
-      const name = spun ? pool[action.pick % pool.length].name : chosen.name;
+      const { name, spun } = resolveDestination(state.dest, action.pick);
       return {
         ...state,
         fines: [],
@@ -377,6 +397,18 @@ export function reducer(state: State, action: Action): State {
         cashOut: { amt, dest: name, spun },
         lastFine: null,
         animCoin: false,
+      };
+    }
+
+    case 'cashout/confirm': {
+      if (!state.cashOut) return state;
+      // Correct the optimistic figures with the authoritative ones, and fix
+      // the lifetime total the optimistic pass guessed at.
+      const drift = action.amt - state.cashOut.amt;
+      return {
+        ...state,
+        cashOut: { ...state.cashOut, amt: action.amt, dest: action.dest },
+        totalEver: state.totalEver + drift,
       };
     }
 
@@ -406,9 +438,15 @@ export function reducer(state: State, action: Action): State {
         palette: jar.palette,
         notif: jar.notif,
         onboarded: true,
-        // The jar drawing is a function of how full the jar is, and a real jar
-        // starts empty rather than at the seed's fifteen.
-        coins: Math.max(COIN_FLOOR, Math.min(COIN_CAP, fines.length)),
+        startedOn: jar.startedOn,
+        // How full the jar looks follows how full it is. A brand new jar draws
+        // nothing; the floor of three is the residue a cash-out leaves.
+        coins:
+          fines.length > 0
+            ? Math.min(COIN_CAP, fines.length)
+            : jar.totalEver > 0
+              ? COIN_FLOOR
+              : 0,
       };
     }
 
@@ -631,6 +669,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           at: new Date().toISOString(),
           extraRuleId: newId(),
         };
+      } else if (action.type === 'setOnboarded') {
+        applied = { type: 'setOnboarded', at: new Date().toISOString().slice(0, 10) };
       } else if (action.type === 'rule/add') {
         applied = { type: 'rule/add', id: newId(), name: action.name, price: action.price };
       } else {
@@ -677,19 +717,34 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           archiveRule(sb, applied.id).catch(fail);
           break;
         case 'cashout': {
-          const chosen = DESTINATIONS.find((d) => d.id === prev.dest) ?? DESTINATIONS[0];
-          const pool = DESTINATIONS.filter((d) => d.id !== 'wheel');
-          const spun = chosen.id === 'wheel';
-          const name = spun ? pool[applied.pick % pool.length].name : chosen.name;
-          cashOut(sb, name, spun).catch(fail);
+          const { name, spun } = resolveDestination(prev.dest, applied.pick);
+          cashOut(sb, name, spun)
+            .then((confirmed) => {
+              // The reveal must show what the database recorded, not what this
+              // client happened to have. A fine the partner logged a moment ago
+              // may not have arrived yet, and this is the Mystery jar reveal —
+              // the one figure that has to be right.
+              if (confirmed) {
+                baseDispatch({
+                  type: 'cashout/confirm',
+                  amt: confirmed.amount,
+                  dest: confirmed.destination,
+                });
+              }
+            })
+            .catch(fail);
           break;
         }
         case 'setName': {
-          const target = applied.person === 'A' ? jar.meId : jar.partnerId;
-          // You can rename yourself. Renaming the other person is a local
-          // nickname only — their profile is theirs.
-          if (applied.person === 'A' && target) {
-            setDisplayName(sb, target, applied.name || NAME_FALLBACK_ME).catch(fail);
+          // Your own name is your profile. What you call them is a nickname on
+          // your own membership row — their profile stays theirs to set.
+          if (applied.person === 'A') {
+            setDisplayName(sb, jar.meId, applied.name || NAME_FALLBACK_ME).catch(fail);
+          } else {
+            const nickname = applied.name.trim();
+            setMemberSettings(sb, jar.jarId, jar.meId, {
+              partner_nickname: nickname.length > 0 ? nickname : null,
+            }).catch(fail);
           }
           break;
         }

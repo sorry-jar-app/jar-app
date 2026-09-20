@@ -6,12 +6,6 @@ export const SEVERITIES: SeverityOption[] = [
   { id: 'unforgivable', name: 'Unforgivable', mult: 3 },
 ];
 
-export const SEVERITY_MULTIPLIER: Record<string, number> = {
-  mild: 1,
-  bad: 2,
-  unforgivable: 3,
-};
-
 export const DEFAULT_RULES: Rule[] = [
   { id: 'swear', name: 'Swearing', price: 1 },
   { id: 'late', name: 'Late again', price: 2.5 },
@@ -101,4 +95,3 @@ export const SEED_FINES: Fine[] = [
 
 export const SEED_TOTAL_EVER = 112;
 export const SEED_COINS = 15;
-export const SEED_NEXT_ID = 100;

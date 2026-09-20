@@ -35,6 +35,7 @@ type MemberRow = {
   user_id: string;
   mystery: boolean;
   palette: string;
+  partner_nickname: string | null;
   notify_fined: boolean;
   notify_self_fined: boolean;
   notify_milestone: boolean;
@@ -50,6 +51,8 @@ type FineRow = {
   amount: string | number;
   occurred_at: string;
 };
+
+type CashOutRef = { cashed_at: string; destination: string };
 
 const PALETTES: PaletteName[] = ['Mulberry', 'Pine', 'Ink', 'Terracotta'];
 
@@ -69,12 +72,13 @@ function money(value: string | number): number {
  * normal state — it is what the Pairing screen exists to resolve.
  */
 export async function loadJar(sb: SupabaseClient, meId: string): Promise<JarContext | null> {
-  const { data: membership } = await sb
+  const { data: membership, error } = await sb
     .from('jar_members')
     .select('jar_id')
     .eq('user_id', meId)
     .maybeSingle();
 
+  if (error) throw new Error(error.message);
   if (!membership) return null;
   const jarId = membership.jar_id as string;
 
@@ -83,7 +87,9 @@ export async function loadJar(sb: SupabaseClient, meId: string): Promise<JarCont
       sb.from('jars').select('id, invite_code, started_on, currency').eq('id', jarId).single(),
       sb
         .from('jar_members')
-        .select('user_id, mystery, palette, notify_fined, notify_self_fined, notify_milestone')
+        .select(
+          'user_id, mystery, palette, partner_nickname, notify_fined, notify_self_fined, notify_milestone',
+        )
         .eq('jar_id', jarId),
       sb.from('profiles').select('id, display_name'),
       sb.from('cash_outs').select('amount').eq('jar_id', jarId),
@@ -112,7 +118,9 @@ export async function loadJar(sb: SupabaseClient, meId: string): Promise<JarCont
     meId,
     partnerId: theirs?.user_id ?? null,
     meName: nameOf(meId, 'You'),
-    partnerName: nameOf(theirs?.user_id ?? null, 'Them'),
+    // What you call them wins over what they call themselves — see the
+    // partner_nickname migration.
+    partnerName: mine?.partner_nickname?.trim() || nameOf(theirs?.user_id ?? null, 'Them'),
     mystery: mine?.mystery ?? false,
     palette: asPalette(mine?.palette ?? 'Mulberry'),
     notif: {
@@ -139,13 +147,14 @@ export async function joinJar(sb: SupabaseClient, code: string): Promise<string>
 /* ── rules ───────────────────────────────────────────────────────────────── */
 
 export async function loadRules(sb: SupabaseClient, jarId: string): Promise<Rule[]> {
-  const { data } = await sb
+  const { data, error } = await sb
     .from('rules')
     .select('id, name, price')
     .eq('jar_id', jarId)
     .is('archived_at', null)
     .order('created_at', { ascending: true });
 
+  if (error) throw new Error(error.message);
   return (data ?? []).map((r) => ({
     id: r.id as string,
     name: r.name as string,
@@ -188,14 +197,62 @@ function personOf(userId: string, meId: string): Person {
 }
 
 export async function loadFines(sb: SupabaseClient, jarId: string, meId: string): Promise<Fine[]> {
-  const { data } = await sb
+  const { data, error } = await sb
     .from('fines')
     .select('id, on_user, by_user, rule_id, label, severity, amount, occurred_at')
     .eq('jar_id', jarId)
     .is('cash_out_id', null)
     .order('occurred_at', { ascending: false });
 
+  if (error) throw new Error(error.message);
   return (data ?? []).map((row) => fineFromRow(row as FineRow, meId));
+}
+
+/**
+ * Every fine the jar has ever held, cashed out or not.
+ *
+ * loadFines deliberately filters to the current jar; the export does not, which
+ * is the whole reason cashing out stamps fines rather than deleting them. Each
+ * row carries the cash-out that swept it, so the CSV can say which.
+ */
+export async function loadAllFines(
+  sb: SupabaseClient,
+  jarId: string,
+  meId: string,
+): Promise<{ fine: Fine; cashedOutAt: string | null; destination: string | null }[]> {
+  const PAGE = 500;
+  const rows: unknown[] = [];
+
+  // Paged deliberately: a project caps a response at 1000 rows by default, and
+  // a truncated export looks exactly like a complete one.
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await sb
+      .from('fines')
+      .select(
+        'id, on_user, by_user, rule_id, label, severity, amount, occurred_at, cash_out_id, cash_outs(cashed_at, destination)',
+      )
+      .eq('jar_id', jarId)
+      .order('occurred_at', { ascending: false })
+      .range(from, from + PAGE - 1);
+
+    if (error) throw new Error(error.message);
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < PAGE) break;
+  }
+
+  return rows.map((row) => {
+    // PostgREST types an embedded relation as an array even when the foreign
+    // key makes it at most one row, and hands back an object at runtime.
+    // Accept either rather than guessing.
+    const r = row as unknown as FineRow & { cash_outs: CashOutRef | CashOutRef[] | null };
+    const swept = Array.isArray(r.cash_outs) ? (r.cash_outs[0] ?? null) : r.cash_outs;
+    return {
+      fine: fineFromRow(r, meId),
+      cashedOutAt: swept?.cashed_at ?? null,
+      destination: swept?.destination ?? null,
+    };
+  });
 }
 
 export function fineFromRow(row: FineRow, meId: string): Fine {
@@ -274,6 +331,7 @@ export async function setMemberSettings(
   patch: Partial<{
     mystery: boolean;
     palette: PaletteName;
+    partner_nickname: string | null;
     notify_fined: boolean;
     notify_self_fined: boolean;
     notify_milestone: boolean;

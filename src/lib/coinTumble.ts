@@ -12,7 +12,24 @@
  * up with COIN_SLOTS and JAR_BODY_PATH without any conversion.
  */
 
-export type Coin = { x: number; y: number; vx: number; vy: number; r: number };
+export type Coin = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  r: number;
+  /**
+   * A coin at rest stops being integrated.
+   *
+   * Without this the jar never settles: a coin sitting on the floor still has
+   * gravity added every frame, the wall bounces a fraction of it back, and its
+   * speed never falls under the sleep threshold — so the animation frame loop
+   * runs forever and quietly eats the battery.
+   */
+  asleep?: boolean;
+  /** Consecutive frames this coin has barely moved. See the sleep rule in step. */
+  still?: number;
+};
 
 /**
  * The jar body is a rounded rectangle: x 30..170, y 22..248, corner radius 42.
@@ -31,7 +48,20 @@ const GRAVITY = 900; // viewBox units per second²
 const RESTITUTION = 0.42; // how much speed survives a bounce
 const WALL_FRICTION = 0.82;
 const AIR_DRAG = 0.6; // per second
-const SLEEP_SPEED = 4; // below this, and resting, a coin stops being simulated
+/**
+ * How little a coin must travel in a frame to count as stopped, and for how
+ * many frames running.
+ *
+ * Stillness is the signal, not speed. A coin pressed into the pile accumulates
+ * a large velocity that the positional solver cancels every frame — it sits
+ * motionless carrying a fictional 45 units per second — so a speed threshold
+ * alone never fires. Requiring several consecutive still frames avoids
+ * mistaking the apex of a bounce, where one frame's drift is also near zero.
+ */
+const SLEEP_DRIFT = 0.2;
+const SLEEP_FRAMES = 4;
+/** An impulse above this wakes a sleeping neighbour. */
+const WAKE_IMPULSE = 6;
 
 const CX = (LEFT + RIGHT) / 2;
 const CY = (TOP + BOTTOM) / 2;
@@ -124,6 +154,21 @@ function collidePair(a: Coin, b: Coin): void {
   a.vy -= impulse * ny;
   b.vx += impulse * nx;
   b.vy += impulse * ny;
+
+  // Wake a sleeping neighbour that has genuinely been knocked. Deliberately
+  // does NOT touch an awake coin's still counter: inside a settling pile the
+  // impulse is computed from velocities the solver is about to cancel, so it
+  // stays large forever and would keep resetting the countdown to sleep.
+  if (impulse > WAKE_IMPULSE) {
+    if (a.asleep) {
+      a.asleep = false;
+      a.still = 0;
+    }
+    if (b.asleep) {
+      b.asleep = false;
+      b.still = 0;
+    }
+  }
 }
 
 /**
@@ -139,7 +184,11 @@ export function step(coins: Coin[], dt: number, gx = 0, gy = 1): boolean {
   // tunnels coins straight through the walls.
   const h = Math.min(dt, 1 / 30);
 
+  const wasX = coins.map((c) => c.x);
+  const wasY = coins.map((c) => c.y);
+
   for (const c of coins) {
+    if (c.asleep) continue;
     c.vx += GRAVITY * gx * h;
     c.vy += GRAVITY * gy * h;
     const drag = Math.max(0, 1 - AIR_DRAG * h);
@@ -157,11 +206,27 @@ export function step(coins: Coin[], dt: number, gx = 0, gy = 1): boolean {
     for (const c of coins) collideWalls(c);
   }
 
+  // Anything slow that also went nowhere has come to rest. Both conditions
+  // matter: speed alone never drops, because gravity keeps topping it up
+  // against whatever the coin is lying on.
   let moving = false;
-  for (const c of coins) {
-    if (Math.hypot(c.vx, c.vy) > SLEEP_SPEED) {
+  for (let i = 0; i < coins.length; i++) {
+    const c = coins[i];
+    if (c.asleep) continue;
+
+    if (Math.hypot(c.x - wasX[i], c.y - wasY[i]) < SLEEP_DRIFT) {
+      c.still = (c.still ?? 0) + 1;
+    } else {
+      c.still = 0;
+    }
+
+    if ((c.still ?? 0) >= SLEEP_FRAMES) {
+      c.asleep = true;
+      // The velocity it went to sleep holding was never real movement.
+      c.vx = 0;
+      c.vy = 0;
+    } else {
       moving = true;
-      break;
     }
   }
   return moving;
@@ -170,6 +235,8 @@ export function step(coins: Coin[], dt: number, gx = 0, gy = 1): boolean {
 /** Fling every coin. Called on a shake or a tap. */
 export function kick(coins: Coin[], strength = 1, rand: () => number = Math.random): void {
   for (const c of coins) {
+    c.asleep = false;
+    c.still = 0;
     c.vx += (rand() * 2 - 1) * 260 * strength;
     // Upward bias — shaking a jar throws the contents up, not sideways.
     c.vy -= (90 + rand() * 300) * strength;
@@ -178,5 +245,5 @@ export function kick(coins: Coin[], strength = 1, rand: () => number = Math.rand
 
 /** Start the coins at their designed slot positions, at rest. */
 export function fromSlots(slots: ReadonlyArray<readonly [number, number, number]>): Coin[] {
-  return slots.map(([x, y, r]) => ({ x, y, vx: 0, vy: 0, r }));
+  return slots.map(([x, y, r]) => ({ x, y, vx: 0, vy: 0, r, asleep: false, still: 0 }));
 }

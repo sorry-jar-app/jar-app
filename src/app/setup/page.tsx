@@ -5,16 +5,16 @@
  *
  * Not in the handoff: the prototype hard-coded Alex and Sam and left renaming
  * to Settings. But the whole point of the jar is that it is the two of you, and
- * the demo reads as someone else's until the names are yours. Sits between
- * Welcome and Pairing, in the Pairing screen's left-aligned frame.
+ * it reads as someone else's until the names are yours. Sits between Welcome
+ * and Pairing, in the Pairing screen's left-aligned frame.
  *
- * Blank is allowed and falls back to the seed names, so nobody is trapped
- * behind a form on the way into a demo.
+ * Blank is allowed and falls back to "You" and "Them", which is what the
+ * placeholders show, so nobody is trapped behind a form on the way in.
  */
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { DEFAULT_ME, DEFAULT_PARTNER } from '@/lib/constants';
+import { NAME_FALLBACK_ME, NAME_FALLBACK_PARTNER } from '@/lib/constants';
 import { useStore } from '@/lib/store';
 
 export default function SetupPage() {
@@ -25,8 +25,8 @@ export default function SetupPage() {
   const [partner, setPartner] = useState('');
 
   const go = () => {
-    dispatch({ type: 'setName', person: 'A', name: me.trim() || DEFAULT_ME });
-    dispatch({ type: 'setName', person: 'S', name: partner.trim() || DEFAULT_PARTNER });
+    dispatch({ type: 'setName', person: 'A', name: me.trim() || NAME_FALLBACK_ME });
+    dispatch({ type: 'setName', person: 'S', name: partner.trim() || NAME_FALLBACK_PARTNER });
     router.push('/pair');
   };
 
@@ -49,7 +49,7 @@ export default function SetupPage() {
             className="input"
             style={{ height: 44 }}
             value={me}
-            placeholder={DEFAULT_ME}
+            placeholder={NAME_FALLBACK_ME}
             autoComplete="given-name"
             autoFocus
             onChange={(e) => setMe(e.target.value)}
@@ -62,7 +62,7 @@ export default function SetupPage() {
             className="input"
             style={{ height: 44 }}
             value={partner}
-            placeholder={DEFAULT_PARTNER}
+            placeholder={NAME_FALLBACK_PARTNER}
             autoComplete="off"
             onChange={(e) => setPartner(e.target.value)}
             onKeyDown={(e) => {

@@ -32,7 +32,7 @@ export default function HomePage() {
   const meShare = total ? Math.round((meTotal / total) * 100) : 50;
 
   // A real jar knows when it started; the constant is the demo's.
-  const started = state.jar ? formatStarted(state.jar.startedOn) : JAR_STARTED;
+  const started = state.startedOn ? formatStarted(state.startedOn) : JAR_STARTED;
 
   const [tumbleKey, setTumbleKey] = useState(0);
   const tumble = useCallback(() => setTumbleKey((n) => n + 1), []);

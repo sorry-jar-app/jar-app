@@ -36,6 +36,16 @@ function peekPendingCode(): string | null {
   }
 }
 
+/** Reasons that will never succeed on a retry, however many times it is tried. */
+function isFinalRefusal(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    m.includes('no jar with that code') ||
+    m.includes('already a pair') ||
+    m.includes('already in a jar')
+  );
+}
+
 function clearPendingCode(): void {
   try {
     localStorage.removeItem(PENDING_CODE);
@@ -96,9 +106,11 @@ export default function AuthCallbackPage() {
         if (code) {
           const message = await joinByCode(code);
           if (message) {
-            // Keep the code. This is as likely to be a dropped connection as a
-            // bad invite, and it is the only copy left.
             console.warn('[sorry jar] invite code refused:', message);
+            // A definitive refusal must clear the code, or it is retried on
+            // every future sign-in and the snag screen becomes permanent. A
+            // transient failure keeps it — that copy is the only one left.
+            if (isFinalRefusal(message)) clearPendingCode();
             setSnag({ line: 'That invite didn’t take.', action: 'Enter it by hand' });
             return;
           }
